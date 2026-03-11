@@ -1,0 +1,18 @@
+[project]
+name = "pdf-extraction"
+version = "0.1.0"
+description = "Smoke-test PDF to Markdown extraction with Docling and MinerU"
+requires-python = ">=3.12"
+dependencies = [
+  "docling",
+  "mineru[pipeline]",
+  "psutil>=7.2.2",
+  "pypdf>=6.8.0",
+  "weasyprint",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+mineru = { path = "../src/MinerU", editable = true }

@@ -1,0 +1,11 @@
+.linear.toml
+.serena/
+.venv/
+.venv-mineru/
+__pycache__/
+artifacts/
+outputs/
+mineru.json
+mineru_extraction.log
+mineru_speed_test/
+mineru_test_output/

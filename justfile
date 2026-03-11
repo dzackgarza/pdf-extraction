@@ -6,6 +6,8 @@ jobs_dir := "outputs/jobs"
 experiments_dir := "outputs/experiments"
 sterk_pdf := "/home/dzack/pdfs/Peters-Sterk_2024_Symmetric-and-Quadratic-Forms.pdf"
 venv_bin := ".venv/bin"
+default_batch_size := "120"
+default_heartbeat := "10"
 
 default:
   @just --list
@@ -62,6 +64,79 @@ mineru: sample-pdf
 
 smoke: docling mineru
 
+extract-pdf pdf batch_size=default_batch_size method='auto' lang='en' heartbeat=default_heartbeat:
+  just mineru-batched "{{pdf}}" "{{batch_size}}" "{{method}}" "{{lang}}" "{{heartbeat}}" 1 1
+
+launch-extract-pdf pdf batch_size=default_batch_size method='auto' lang='en' heartbeat=default_heartbeat:
+  just launch-mineru-batched "{{pdf}}" "{{batch_size}}" "{{method}}" "{{lang}}" "{{heartbeat}}" 1 1
+
+resume-extract job_dir heartbeat=default_heartbeat:
+  just resume-mineru-batched "{{job_dir}}" "{{heartbeat}}"
+
+extract-status job_dir:
+  #!/usr/bin/env bash
+  set -euxo pipefail
+  job_dir="{{job_dir}}"
+  status_path="$job_dir/status.json"
+  manifest_path="$job_dir/manifest.json"
+  test -f "$status_path"
+  jq '{phase, completed_batches, batch_count, pending_batches, current_batch, peak_rss_mb, failure}' "$status_path"
+  if [ -f "$manifest_path" ]; then
+    printf '\n'
+    jq '{status, batch_size, page_count, selected_start_page, selected_end_page, completed_batches, pending_batches, peak_rss_mb, combined_markdown}' "$manifest_path"
+  fi
+  if [ -f "$job_dir/pid" ]; then
+    printf '\npid=%s\n' "$(cat "$job_dir/pid")"
+  fi
+  printf 'job_dir=%s\n' "$job_dir"
+  printf 'run_log=%s\n' "$job_dir/run.log"
+
+extract-tail job_dir lines='40':
+  #!/usr/bin/env bash
+  set -euxo pipefail
+  job_dir="{{job_dir}}"
+  lines="{{lines}}"
+  status_path="$job_dir/status.json"
+  test -f "$status_path"
+  batch_tag="$(jq -r '.current_batch.batch_tag // empty' "$status_path")"
+  if [ -n "$batch_tag" ] && [ -d "$job_dir/batches/$batch_tag" ]; then
+    attempt_dir="$(find "$job_dir/batches/$batch_tag" -mindepth 1 -maxdepth 1 -type d -name 'attempt-*' | sort | tail -n 1)"
+    if [ -n "$attempt_dir" ] && [ -f "$attempt_dir/worker.log" ]; then
+      tail -n "$lines" "$attempt_dir/worker.log"
+      exit 0
+    fi
+  fi
+  tail -n "$lines" "$job_dir/run.log"
+
+extract-progress job_dir lines='20':
+  #!/usr/bin/env bash
+  set -euxo pipefail
+  job_dir="{{job_dir}}"
+  lines="{{lines}}"
+  status_path="$job_dir/status.json"
+  test -f "$status_path"
+  batch_tag="$(jq -r '.current_batch.batch_tag // empty' "$status_path")"
+  test -n "$batch_tag"
+  attempt_dir="$(find "$job_dir/batches/$batch_tag" -mindepth 1 -maxdepth 1 -type d -name 'attempt-*' | sort | tail -n 1)"
+  test -n "$attempt_dir"
+  progress_log="$attempt_dir/progress.jsonl"
+  test -f "$progress_log"
+  tail -n "$lines" "$progress_log"
+
+extract-markdown-path job_dir:
+  #!/usr/bin/env bash
+  set -euxo pipefail
+  jq -r '.combined_markdown' "{{job_dir}}/manifest.json"
+
+extract-stop job_dir signal='TERM':
+  #!/usr/bin/env bash
+  set -euxo pipefail
+  pid_path="{{job_dir}}/pid"
+  test -f "$pid_path"
+  pid="$(cat "$pid_path")"
+  kill -s "{{signal}}" "$pid"
+  printf 'pid=%s\n' "$pid"
+
 mineru-batched pdf batch_size method='auto' lang='en' heartbeat='10' render_threads='1' min_inference_batch='1': sync
   #!/usr/bin/env bash
   set -euxo pipefail
@@ -83,6 +158,7 @@ mineru-batched pdf batch_size method='auto' lang='en' heartbeat='10' render_thre
     --heartbeat-seconds "{{heartbeat}}" \
     --render-threads "{{render_threads}}" \
     --min-inference-batch "{{min_inference_batch}}" )
+  printf 'job_dir=%s\n' "$job_dir"
   "${cmd[@]}"
 
 resume-mineru-batched job_dir heartbeat='10': sync
@@ -106,18 +182,41 @@ launch-mineru-batched pdf batch_size method='auto' lang='en' heartbeat='10' rend
   ts="$(date -u +%Y%m%dT%H%M%SZ)"
   job_dir="{{jobs_dir}}/${slug}-mineru-${ts}"
   mkdir -p "$job_dir"
-  cmd=( nohup "{{venv_bin}}/python" scripts/run_mineru_batched.py \
-    --pdf "$pdf" \
-    --job-dir "$job_dir" \
-    --method "{{method}}" \
-    --batch-size "{{batch_size}}" \
-    --lang "{{lang}}" \
-    --heartbeat-seconds "{{heartbeat}}" \
-    --render-threads "{{render_threads}}" \
-    --min-inference-batch "{{min_inference_batch}}" )
-  "${cmd[@]}" >"$job_dir/run.log" 2>&1 &
+  repo_root="$(pwd)"
+  python_bin="$repo_root/{{venv_bin}}/python"
+  runner_script="$repo_root/scripts/run_mineru_batched.py"
+  run_script="$job_dir/run.sh"
+  repo_root_q="$(printf '%q' "$repo_root")"
+  python_bin_q="$(printf '%q' "$python_bin")"
+  runner_script_q="$(printf '%q' "$runner_script")"
+  pdf_q="$(printf '%q' "$pdf")"
+  job_dir_q="$(printf '%q' "$job_dir")"
+  method_q="$(printf '%q' "{{method}}")"
+  batch_size_q="$(printf '%q' "{{batch_size}}")"
+  lang_q="$(printf '%q' "{{lang}}")"
+  heartbeat_q="$(printf '%q' "{{heartbeat}}")"
+  render_threads_q="$(printf '%q' "{{render_threads}}")"
+  min_inference_batch_q="$(printf '%q' "{{min_inference_batch}}")"
+  {
+    printf '%s\n' '#!/usr/bin/env bash'
+    printf '%s\n' 'set -euo pipefail'
+    printf 'cd %s\n' "$repo_root_q"
+    printf 'exec %s %s \\\n' "$python_bin_q" "$runner_script_q"
+    printf '  --pdf %s \\\n' "$pdf_q"
+    printf '  --job-dir %s \\\n' "$job_dir_q"
+    printf '  --method %s \\\n' "$method_q"
+    printf '  --batch-size %s \\\n' "$batch_size_q"
+    printf '  --lang %s \\\n' "$lang_q"
+    printf '  --heartbeat-seconds %s \\\n' "$heartbeat_q"
+    printf '  --render-threads %s \\\n' "$render_threads_q"
+    printf '  --min-inference-batch %s\n' "$min_inference_batch_q"
+  } > "$run_script"
+  chmod +x "$run_script"
+  setsid "$run_script" >"$job_dir/run.log" 2>&1 < /dev/null &
   pid=$!
   printf '%s\n' "$pid" > "$job_dir/pid"
+  sleep 1
+  ps -p "$pid" >/dev/null
   printf 'job_dir=%s\n' "$job_dir"
   printf 'pid=%s\n' "$pid"
 
@@ -189,5 +288,8 @@ lorem-batch-experiment pages='4' batch_sizes='1,2,4' start_page='0' method='txt'
   just lorem-pdf "{{pages}}" "$pdf"
   just mineru-batch-experiment "$pdf" "{{batch_sizes}}" "{{start_page}}" "{{method}}" "{{heartbeat}}" 1 1
 
-launch-sterk-mineru batch_size heartbeat='10':
-  just launch-mineru-batched "{{sterk_pdf}}" "{{batch_size}}" auto en "{{heartbeat}}" 1 1
+extract-sterk batch_size=default_batch_size heartbeat=default_heartbeat:
+  just extract-pdf "{{sterk_pdf}}" "{{batch_size}}" auto en "{{heartbeat}}"
+
+launch-sterk-mineru batch_size=default_batch_size heartbeat=default_heartbeat:
+  just launch-extract-pdf "{{sterk_pdf}}" "{{batch_size}}" auto en "{{heartbeat}}"

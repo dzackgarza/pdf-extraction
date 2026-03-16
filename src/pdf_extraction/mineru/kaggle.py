@@ -63,6 +63,28 @@ def append_event(events_path: Path, event: str, **fields: object) -> None:
         handle.write("\n")
 
 
+def record_extraction_history(pdf_path: Path, page_count: int, elapsed_seconds: float, status: str, failure_reason: str | None = None) -> None:
+    history_file = Path("EXTRACTIONS.md")
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    file_name = pdf_path.name
+    minutes = int(elapsed_seconds // 60)
+    seconds = int(elapsed_seconds % 60)
+    time_str = f"{minutes:02d}m {seconds:02d}s"
+    
+    display_status = status.upper()
+    if failure_reason:
+        display_status += f" ({failure_reason})"
+
+    header = "| Timestamp | File Name | Pages | Time | Status |\n| :--- | :--- | :--- | :--- | :--- |\n"
+    new_entry = f"| {timestamp} | {file_name} | {page_count} | {time_str} | {display_status} |\n"
+
+    if not history_file.exists():
+        history_file.write_text(header + new_entry, encoding="utf-8")
+    else:
+        with history_file.open("a", encoding="utf-8") as f:
+            f.write(new_entry)
+
+
 def get_page_count(pdf_path: Path) -> int:
     with pdf_path.open("rb") as handle:
         return len(PdfReader(handle).pages)
@@ -790,6 +812,7 @@ def run_remote_job(api: KaggleApi, manifest: dict[str, object], args: argparse.N
 
 
 def main() -> int:
+    start_time = time.monotonic()
     args = parse_args()
     args.pdf = args.pdf.expanduser().resolve()
     if args.device is None:
@@ -811,15 +834,15 @@ def main() -> int:
     assert api is not None, "authenticated api is required for remote jobs"
     try:
         run_remote_job(api, manifest, args)
-    except SystemExit as exc:
+    except (SystemExit, Exception) as exc:
         failure = str(exc)
         persist_state(manifest, "failed", failure)
         append_event(events_path(manifest), "failed", error=failure)
-        raise
-    except Exception as exc:  # pragma: no cover - network and Kaggle errors are not deterministic locally
-        failure = str(exc)
-        persist_state(manifest, "failed", failure)
-        append_event(events_path(manifest), "failed", error=failure)
+        
+        elapsed_seconds = time.monotonic() - start_time
+        page_count = manifest.get("page_count", 0)
+        if isinstance(page_count, int):
+            record_extraction_history(args.pdf, page_count, elapsed_seconds, "failed", failure)
         raise
 
     markdown_path_str = manifest.get("markdown_path")
@@ -831,6 +854,11 @@ def main() -> int:
             shutil.move(markdown_path, destination)
             manifest["markdown_path"] = str(destination)
             persist_state(manifest, "complete")
+
+    elapsed_seconds = time.monotonic() - start_time
+    page_count = manifest.get("page_count", 0)
+    if isinstance(page_count, int) and manifest.get("phase") == "complete":
+        record_extraction_history(args.pdf, page_count, elapsed_seconds, "complete")
 
     if not args.save_artifacts:
         job_dir = Path(cast(str, manifest["job_dir"]))
@@ -845,5 +873,5 @@ def main() -> int:
     return 0
 
 
-if False:
+if __name__ == "__main__":
     raise SystemExit(main())

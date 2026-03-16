@@ -1,5 +1,4 @@
 kaggle_jobs_dir := "outputs/kaggle-jobs"
-sterk_pdf := "/home/dzack/pdfs/Peters-Sterk_2024_Symmetric-and-Quadratic-Forms.pdf"
 venv_bin := ".venv/bin"
 
 default:
@@ -115,12 +114,6 @@ kaggle-markdown-path job_dir:
   #!/usr/bin/env bash
   set -euxo pipefail
   jq -r '.markdown_path' "{{job_dir}}/manifest.json"
-
-kaggle-extract-sterk owner='' poll='30' timeout='' accelerator='' device='' enable_gpu='1' formula='1' table='' cleanup_remote='1' save_artifacts='0' virtual_vram_size='':
-  just kaggle-extract-pdf "{{sterk_pdf}}" "{{owner}}" auto en pipeline "{{device}}" huggingface "{{poll}}" "{{timeout}}" "{{accelerator}}" "{{enable_gpu}}" "{{formula}}" "{{table}}" "{{cleanup_remote}}" "{{save_artifacts}}" "{{virtual_vram_size}}"
-
-kaggle-prepare-sterk owner accelerator='' device='' enable_gpu='1' formula='1' table='' cleanup_remote='1' virtual_vram_size='':
-  just kaggle-prepare-pdf "{{sterk_pdf}}" "{{owner}}" auto en pipeline "{{device}}" huggingface "{{accelerator}}" "{{enable_gpu}}" "{{formula}}" "{{table}}" "{{cleanup_remote}}" "{{virtual_vram_size}}"
 
 kaggle-extract-pdf-tables pdf owner='' poll='30' timeout='' accelerator='' device='' enable_gpu='1' formula='1' cleanup_remote='1' save_artifacts='0' virtual_vram_size='':
   just kaggle-extract-pdf "{{pdf}}" "{{owner}}" auto en pipeline "{{device}}" huggingface "{{poll}}" "{{timeout}}" "{{accelerator}}" "{{enable_gpu}}" "{{formula}}" 1 "{{cleanup_remote}}" "{{save_artifacts}}" "{{virtual_vram_size}}"

@@ -13,14 +13,14 @@ This repo is the canonical home for Kaggle-only MinerU extraction. Local Docling
 ### Mistral OCR (Secondary / Probe)
 - **Model**: `mistral-ocr-latest`
 - **Tier**: "Exploration" (Free) on La Plateforme.
-- **Limits**: Strictly for evaluation. Throttle is ~1 request per second (RPS).
-- **Privacy**: **Data on the Free Tier may be used for model training.** Use only for non-sensitive probes.
+- **Request Limits**: 50 MB and 1,000 pages per request.
+- **Tier Limits**: Strictly for evaluation/prototyping. Throttle is ~1 request per second (RPS).
 - **Usage**: Best for sparse probes or comparison. Run with `just mistral-ocr-pdf`.
 
 ## Working Rules
 
 - **Use the justfile**: Never use ad hoc Kaggle commands or global installs.
-- **Runner**: `scripts/run_mineru_kaggle_job.py` is the active extraction runner.
+- **Runner**: `pdf-mineru` is the active extraction runner (defined in `src/pdf_extraction/cli/mineru.py`).
 - **Storage**: `outputs/kaggle-jobs/...` is the temporary local state for jobs.
 - **Result**: Successfully extracted markdowns are moved next to the original PDF, and local job artifacts are trashed by default (unless `--save-artifacts` is passed).
 

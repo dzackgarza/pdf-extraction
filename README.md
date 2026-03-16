@@ -1,99 +1,78 @@
 # PDF Extraction Workflow
 
-This repo uses `scripts/run_mineru_batched.py` as the canonical PDF to Markdown path.
+This repo is for Kaggle-only MinerU extraction. Local Docling and local MinerU conversion paths are intentionally out of scope.
 
-Use the `just` recipes, not ad hoc `mineru` invocations:
-
-```bash
-just extract-pdf /abs/path/to/file.pdf
-just launch-extract-pdf /abs/path/to/file.pdf
-```
-
-The runner always goes through the batched path. If the PDF has at most `batch_size` pages, it runs as one batch. If the PDF is larger, it splits the work into batches and rebuilds one combined markdown file as batches finish. The current default on this machine is `batch_size=120`, chosen to keep dense pages around the `5 GB` process-tree RSS target.
-
-## Start A Run
-
-Foreground:
+Use the `just` recipes, not ad hoc Kaggle commands:
 
 ```bash
-just extract-pdf /abs/path/to/file.pdf
+just kaggle-extract-pdf /abs/path/to/file.pdf
+just kaggle-prepare-pdf /abs/path/to/file.pdf your-kaggle-username
 ```
 
-Background:
+## Primary Flow
+
+Run a full remote extraction:
 
 ```bash
-just launch-extract-pdf /abs/path/to/file.pdf
+just kaggle-extract-pdf /abs/path/to/file.pdf
 ```
 
-The background launcher prints:
+Math-paper default:
 
-- `job_dir=...`
-- `pid=...`
-
-Use `job_dir` as the handle for every later action.
-
-Sterk shortcut:
+- table extraction is disabled unless you opt in with `just kaggle-extract-pdf-tables /abs/path/to/file.pdf`
+- formula extraction stays enabled by default
 
 ```bash
-just launch-sterk-mineru
+just kaggle-extract-pdf-tables /abs/path/to/file.pdf
 ```
 
-## Manage A Long Run
-
-Check status:
+Prepare the local Kaggle dataset/kernel bundle without submitting it:
 
 ```bash
-just extract-status /abs/path/to/job_dir
+just kaggle-prepare-pdf /abs/path/to/file.pdf your-kaggle-username
 ```
 
-Show the current worker log:
+Inspect a job directory:
 
 ```bash
-just extract-tail /abs/path/to/job_dir
+just kaggle-job-status /abs/path/to/job_dir
 ```
 
-Show the current structured progress stream:
+Convenience shortcut for the Peters-Sterk text:
 
 ```bash
-just extract-progress /abs/path/to/job_dir
+just kaggle-extract-sterk
 ```
 
-Stop the supervisor cleanly:
+Run a sparse Mistral OCR probe with `MISTRAL_API_KEY` loaded via `direnv`:
 
 ```bash
-just extract-stop /abs/path/to/job_dir
+just mistral-ocr-pdf /abs/path/to/file.pdf 0
 ```
 
-Resume a stopped or paused run:
+## What The Runner Does
 
-```bash
-just resume-extract /abs/path/to/job_dir
-```
+- uploads the PDF as a private Kaggle dataset
+- launches a private Kaggle notebook
+- installs `mineru[pipeline]` inside the notebook
+- requests GPU by default and runs MinerU in the notebook directly
+- downloads `mineru-summary.json` and `mineru-output.zip` into `outputs/kaggle-jobs/...`
+- extracts the bundle locally and records the markdown path in `manifest.json`
+- deletes the remote kernel and input dataset after a successful download unless explicitly disabled
 
-Print the combined markdown path:
+## Requirements
 
-```bash
-just extract-markdown-path /abs/path/to/job_dir
-```
+- Kaggle credentials must already be configured for the local `kaggle` Python package / CLI
+- the runner honors OAuth when `KAGGLE_ENABLE_OAUTH=1`
+- when GPU is enabled and no override is provided, the runner defaults to `cuda` plus Kaggle accelerator `P100`
+- table extraction defaults to off for Kaggle MinerU runs; use `just kaggle-extract-pdf-tables /abs/path/to/file.pdf` to opt in
 
-## What Lives In A Job Directory
+## Job Directory Layout
 
-- `status.json`: current phase, current batch, and live resource snapshot
-- `manifest.json`: batch plan, per-batch results, and `combined_markdown`
-- `events.jsonl`: structured supervisor event log
-- `run.log`: detached launcher output
-- `pid`: supervisor PID for `extract-stop`
-- `run.sh`: exact detached command used for the run
-- `batches/<tag>/attempt-XXX/worker.log`: MinerU stdout/stderr for one batch
-- `batches/<tag>/attempt-XXX/progress.jsonl`: structured progress and resource heartbeats for one batch
-- `combined/<slug>.md`: concatenated markdown rebuilt after each completed batch
-
-## Status Phases
-
-- `starting`: supervisor started and is planning the next batch
-- `running_batch`: a batch worker is active
-- `paused`: the run stopped after a requested batch boundary
-- `failed`: the current batch failed or was terminated
-- `complete`: all batches finished and the combined markdown is final
-
-For finished runs, `manifest.json` is the single source of truth for batch results and the final markdown path.
+- `status.json`: current phase plus the latest known Kaggle refs and downloaded files
+- `manifest.json`: canonical job state, summary path, bundle path, and markdown path
+- `events.jsonl`: structured local event log for the Kaggle submission/download lifecycle
+- `downloads/*.log`: downloaded Kaggle notebook session log
+- `downloads/mineru-summary.json`: notebook-side summary of the MinerU run
+- `downloads/mineru-output.zip`: downloaded extraction bundle
+- `extracted/.../*.md`: extracted markdown output

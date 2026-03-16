@@ -1,13 +1,6 @@
-sample_md := "fixtures/lorem.md"
-sample_pdf := "artifacts/lorem.pdf"
-docling_dir := "outputs/docling"
-mineru_dir := "outputs/mineru"
-jobs_dir := "outputs/jobs"
-experiments_dir := "outputs/experiments"
+kaggle_jobs_dir := "outputs/kaggle-jobs"
 sterk_pdf := "/home/dzack/pdfs/Peters-Sterk_2024_Symmetric-and-Quadratic-Forms.pdf"
 venv_bin := ".venv/bin"
-default_batch_size := "120"
-default_heartbeat := "10"
 
 default:
   @just --list
@@ -15,281 +8,136 @@ default:
 sync:
   uv sync
 
-lorem-pdf pages='1' output='artifacts/lorem.pdf': sync
+kaggle-extract-pdf pdf owner='' method='auto' lang='en' backend='pipeline' device='' model_source='huggingface' poll='30' timeout='' accelerator='' enable_gpu='1' formula='1' table='' cleanup_remote='1' save_artifacts='0' virtual_vram_size='': sync
   #!/usr/bin/env bash
   set -euxo pipefail
-  pages="{{pages}}"
-  output="{{output}}"
-  mkdir -p "$(dirname "$output")"
-  tmp_md="$(mktemp --suffix=.md)"
-  trap 'rm -f "$tmp_md"' EXIT
-  for page in $(seq 1 "$pages"); do
-    printf '# Synthetic Page %s\n\n' "$page" >> "$tmp_md"
-    cat "{{sample_md}}" >> "$tmp_md"
-    if [ "$page" -lt "$pages" ]; then
-      printf '\n\n\\newpage\n\n' >> "$tmp_md"
-    fi
-  done
-  export PATH="$(pwd)/{{venv_bin}}:$PATH"
-  pandoc "$tmp_md" --from markdown --standalone --pdf-engine=pdflatex --output "$output"
-  test -s "$output"
-
-sample-pdf:
-  just lorem-pdf 1 "{{sample_pdf}}"
-
-docling: sample-pdf
-  #!/usr/bin/env bash
-  set -euxo pipefail
-  mkdir -p "{{docling_dir}}"
-  "{{venv_bin}}/docling" "{{sample_pdf}}" --to md --no-ocr --output "{{docling_dir}}"
-  docling_md="$(find "{{docling_dir}}" -name 'lorem*.md' -print -quit)"
-  test -n "$docling_md"
-  grep -qi "lorem ipsum" "$docling_md"
-
-mineru: sample-pdf
-  #!/usr/bin/env bash
-  set -euxo pipefail
-  mkdir -p "{{mineru_dir}}"
-  MINERU_MODEL_SOURCE=huggingface "{{venv_bin}}/mineru" \
-    -p "{{sample_pdf}}" \
-    -o "{{mineru_dir}}" \
-    -b pipeline \
-    -m txt \
-    -d cpu \
-    -f false \
-    -t false
-  mineru_md="$(find "{{mineru_dir}}" -name 'lorem*.md' -print -quit)"
-  test -n "$mineru_md"
-  grep -qi "lorem ipsum" "$mineru_md"
-
-smoke: docling mineru
-
-extract-pdf pdf batch_size=default_batch_size method='auto' lang='en' heartbeat=default_heartbeat:
-  just mineru-batched "{{pdf}}" "{{batch_size}}" "{{method}}" "{{lang}}" "{{heartbeat}}" 1 1
-
-launch-extract-pdf pdf batch_size=default_batch_size method='auto' lang='en' heartbeat=default_heartbeat:
-  just launch-mineru-batched "{{pdf}}" "{{batch_size}}" "{{method}}" "{{lang}}" "{{heartbeat}}" 1 1
-
-resume-extract job_dir heartbeat=default_heartbeat:
-  just resume-mineru-batched "{{job_dir}}" "{{heartbeat}}"
-
-extract-status job_dir:
-  #!/usr/bin/env bash
-  set -euxo pipefail
-  job_dir="{{job_dir}}"
-  status_path="$job_dir/status.json"
-  manifest_path="$job_dir/manifest.json"
-  test -f "$status_path"
-  jq '{phase, completed_batches, batch_count, pending_batches, current_batch, peak_rss_mb, failure}' "$status_path"
-  if [ -f "$manifest_path" ]; then
-    printf '\n'
-    jq '{status, batch_size, page_count, selected_start_page, selected_end_page, completed_batches, pending_batches, peak_rss_mb, combined_markdown}' "$manifest_path"
+  cmd=( "uv" "run" "pdf-mineru"
+    --pdf "{{pdf}}"
+    --method "{{method}}"
+    --lang "{{lang}}"
+    --backend "{{backend}}"
+    --model-source "{{model_source}}"
+    --poll-seconds "{{poll}}" )
+  if [ -n "{{owner}}" ]; then
+    cmd+=( --owner "{{owner}}" )
   fi
-  if [ -f "$job_dir/pid" ]; then
-    printf '\npid=%s\n' "$(cat "$job_dir/pid")"
+  if [ -n "{{device}}" ]; then
+    cmd+=( --device "{{device}}" )
   fi
-  printf 'job_dir=%s\n' "$job_dir"
-  printf 'run_log=%s\n' "$job_dir/run.log"
-
-extract-tail job_dir lines='40':
-  #!/usr/bin/env bash
-  set -euxo pipefail
-  job_dir="{{job_dir}}"
-  lines="{{lines}}"
-  status_path="$job_dir/status.json"
-  test -f "$status_path"
-  batch_tag="$(jq -r '.current_batch.batch_tag // empty' "$status_path")"
-  if [ -n "$batch_tag" ] && [ -d "$job_dir/batches/$batch_tag" ]; then
-    attempt_dir="$(find "$job_dir/batches/$batch_tag" -mindepth 1 -maxdepth 1 -type d -name 'attempt-*' | sort | tail -n 1)"
-    if [ -n "$attempt_dir" ] && [ -f "$attempt_dir/worker.log" ]; then
-      tail -n "$lines" "$attempt_dir/worker.log"
-      exit 0
+  if [ -n "{{timeout}}" ]; then
+    cmd+=( --timeout-seconds "{{timeout}}" )
+  fi
+  if [ -n "{{accelerator}}" ]; then
+    cmd+=( --accelerator "{{accelerator}}" )
+  fi
+  if [ -n "{{virtual_vram_size}}" ]; then
+    cmd+=( --virtual-vram-size "{{virtual_vram_size}}" )
+  fi
+  if [ "{{enable_gpu}}" = "1" ]; then
+    cmd+=( --enable-gpu )
+  else
+    cmd+=( --no-enable-gpu )
+  fi
+  if [ "{{formula}}" = "1" ]; then
+    cmd+=( --formula )
+  else
+    cmd+=( --no-formula )
+  fi
+  if [ -n "{{table}}" ]; then
+    if [ "{{table}}" = "1" ]; then
+      cmd+=( --table )
+    else
+      cmd+=( --no-table )
     fi
   fi
-  tail -n "$lines" "$job_dir/run.log"
-
-extract-progress job_dir lines='20':
-  #!/usr/bin/env bash
-  set -euxo pipefail
-  job_dir="{{job_dir}}"
-  lines="{{lines}}"
-  status_path="$job_dir/status.json"
-  test -f "$status_path"
-  batch_tag="$(jq -r '.current_batch.batch_tag // empty' "$status_path")"
-  test -n "$batch_tag"
-  attempt_dir="$(find "$job_dir/batches/$batch_tag" -mindepth 1 -maxdepth 1 -type d -name 'attempt-*' | sort | tail -n 1)"
-  test -n "$attempt_dir"
-  progress_log="$attempt_dir/progress.jsonl"
-  test -f "$progress_log"
-  tail -n "$lines" "$progress_log"
-
-extract-markdown-path job_dir:
-  #!/usr/bin/env bash
-  set -euxo pipefail
-  jq -r '.combined_markdown' "{{job_dir}}/manifest.json"
-
-extract-stop job_dir signal='TERM':
-  #!/usr/bin/env bash
-  set -euxo pipefail
-  pid_path="{{job_dir}}/pid"
-  test -f "$pid_path"
-  pid="$(cat "$pid_path")"
-  kill -s "{{signal}}" "$pid"
-  printf 'pid=%s\n' "$pid"
-
-mineru-batched pdf batch_size method='auto' lang='en' heartbeat='10' render_threads='1' min_inference_batch='1': sync
-  #!/usr/bin/env bash
-  set -euxo pipefail
-  pdf="{{pdf}}"
-  stem="$(basename "$pdf")"
-  stem="${stem%.*}"
-  slug="$(printf '%s' "$stem" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-')"
-  slug="${slug#-}"
-  slug="${slug%-}"
-  ts="$(date -u +%Y%m%dT%H%M%SZ)"
-  job_dir="{{jobs_dir}}/${slug}-mineru-${ts}"
-  mkdir -p "$job_dir"
-  cmd=( "{{venv_bin}}/python" scripts/run_mineru_batched.py \
-    --pdf "$pdf" \
-    --job-dir "$job_dir" \
-    --method "{{method}}" \
-    --batch-size "{{batch_size}}" \
-    --lang "{{lang}}" \
-    --heartbeat-seconds "{{heartbeat}}" \
-    --render-threads "{{render_threads}}" \
-    --min-inference-batch "{{min_inference_batch}}" )
-  printf 'job_dir=%s\n' "$job_dir"
+  if [ "{{cleanup_remote}}" = "1" ]; then
+    cmd+=( --cleanup-remote )
+  else
+    cmd+=( --no-cleanup-remote )
+  fi
+  if [ "{{save_artifacts}}" = "1" ]; then
+    cmd+=( --save-artifacts )
+  fi
   "${cmd[@]}"
 
-resume-mineru-batched job_dir heartbeat='10': sync
+kaggle-prepare-pdf pdf owner method='auto' lang='en' backend='pipeline' device='' model_source='huggingface' accelerator='' enable_gpu='1' formula='1' table='' cleanup_remote='1' virtual_vram_size='': sync
   #!/usr/bin/env bash
   set -euxo pipefail
-  job_dir="{{job_dir}}"
-  cmd=( "{{venv_bin}}/python" scripts/run_mineru_batched.py \
-    --resume-job-dir "$job_dir" \
-    --heartbeat-seconds "{{heartbeat}}" )
+  cmd=( "uv" "run" "pdf-mineru"
+    --pdf "{{pdf}}"
+    --owner "{{owner}}"
+    --prepare-only
+    --method "{{method}}"
+    --lang "{{lang}}"
+    --backend "{{backend}}"
+    --model-source "{{model_source}}" )
+  if [ -n "{{device}}" ]; then
+    cmd+=( --device "{{device}}" )
+  fi
+  if [ -n "{{accelerator}}" ]; then
+    cmd+=( --accelerator "{{accelerator}}" )
+  fi
+  if [ -n "{{virtual_vram_size}}" ]; then
+    cmd+=( --virtual-vram-size "{{virtual_vram_size}}" )
+  fi
+  if [ "{{enable_gpu}}" = "1" ]; then
+    cmd+=( --enable-gpu )
+  else
+    cmd+=( --no-enable-gpu )
+  fi
+  if [ "{{formula}}" = "1" ]; then
+    cmd+=( --formula )
+  else
+    cmd+=( --no-formula )
+  fi
+  if [ -n "{{table}}" ]; then
+    if [ "{{table}}" = "1" ]; then
+      cmd+=( --table )
+    else
+      cmd+=( --no-table )
+    fi
+  fi
+  if [ "{{cleanup_remote}}" = "1" ]; then
+    cmd+=( --cleanup-remote )
+  else
+    cmd+=( --no-cleanup-remote )
+  fi
   "${cmd[@]}"
 
-launch-mineru-batched pdf batch_size method='auto' lang='en' heartbeat='10' render_threads='1' min_inference_batch='1': sync
+kaggle-job-status job_dir:
   #!/usr/bin/env bash
   set -euxo pipefail
-  pdf="{{pdf}}"
-  stem="$(basename "$pdf")"
-  stem="${stem%.*}"
-  slug="$(printf '%s' "$stem" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-')"
-  slug="${slug#-}"
-  slug="${slug%-}"
-  ts="$(date -u +%Y%m%dT%H%M%SZ)"
-  job_dir="{{jobs_dir}}/${slug}-mineru-${ts}"
-  mkdir -p "$job_dir"
-  repo_root="$(pwd)"
-  python_bin="$repo_root/{{venv_bin}}/python"
-  runner_script="$repo_root/scripts/run_mineru_batched.py"
-  run_script="$job_dir/run.sh"
-  repo_root_q="$(printf '%q' "$repo_root")"
-  python_bin_q="$(printf '%q' "$python_bin")"
-  runner_script_q="$(printf '%q' "$runner_script")"
-  pdf_q="$(printf '%q' "$pdf")"
-  job_dir_q="$(printf '%q' "$job_dir")"
-  method_q="$(printf '%q' "{{method}}")"
-  batch_size_q="$(printf '%q' "{{batch_size}}")"
-  lang_q="$(printf '%q' "{{lang}}")"
-  heartbeat_q="$(printf '%q' "{{heartbeat}}")"
-  render_threads_q="$(printf '%q' "{{render_threads}}")"
-  min_inference_batch_q="$(printf '%q' "{{min_inference_batch}}")"
-  {
-    printf '%s\n' '#!/usr/bin/env bash'
-    printf '%s\n' 'set -euo pipefail'
-    printf 'cd %s\n' "$repo_root_q"
-    printf 'exec %s %s \\\n' "$python_bin_q" "$runner_script_q"
-    printf '  --pdf %s \\\n' "$pdf_q"
-    printf '  --job-dir %s \\\n' "$job_dir_q"
-    printf '  --method %s \\\n' "$method_q"
-    printf '  --batch-size %s \\\n' "$batch_size_q"
-    printf '  --lang %s \\\n' "$lang_q"
-    printf '  --heartbeat-seconds %s \\\n' "$heartbeat_q"
-    printf '  --render-threads %s \\\n' "$render_threads_q"
-    printf '  --min-inference-batch %s\n' "$min_inference_batch_q"
-  } > "$run_script"
-  chmod +x "$run_script"
-  setsid "$run_script" >"$job_dir/run.log" 2>&1 < /dev/null &
-  pid=$!
-  printf '%s\n' "$pid" > "$job_dir/pid"
-  sleep 1
-  ps -p "$pid" >/dev/null
-  printf 'job_dir=%s\n' "$job_dir"
-  printf 'pid=%s\n' "$pid"
+  jq '{phase, dataset_ref, dataset_status, kernel_ref, kernel_status, downloaded_files, markdown_path, failure}' "{{job_dir}}/status.json"
+  printf '\n'
+  jq '{pdf, page_count, dataset_ref, kernel_ref, downloads_dir, summary_path, bundle_path, markdown_path, remote_cleanup}' "{{job_dir}}/manifest.json"
 
-mineru-resume-smoke pages='2' batch_size='1' heartbeat='2' method='txt': sync
+kaggle-markdown-path job_dir:
   #!/usr/bin/env bash
   set -euxo pipefail
-  pages="{{pages}}"
-  batch_size="{{batch_size}}"
-  heartbeat="{{heartbeat}}"
-  pdf="artifacts/lorem-resume-${pages}p.pdf"
-  just lorem-pdf "$pages" "$pdf"
-  job_dir="{{jobs_dir}}/resume-smoke-$(date -u +%Y%m%dT%H%M%SZ)"
-  mkdir -p "$job_dir"
-  "{{venv_bin}}/python" scripts/run_mineru_batched.py \
-    --pdf "$pdf" \
-    --job-dir "$job_dir" \
-    --method "{{method}}" \
-    --batch-size "$batch_size" \
-    --lang en \
-    --heartbeat-seconds "$heartbeat" \
-    --render-threads 1 \
-    --min-inference-batch 1 \
-    --no-formula \
-    --no-table \
-    --stop-after-batches 1
-  "{{venv_bin}}/python" scripts/run_mineru_batched.py \
-    --resume-job-dir "$job_dir" \
-    --heartbeat-seconds "$heartbeat"
-  jq -e '.status == "complete"' "$job_dir/manifest.json" >/dev/null
-  combined_md="$(jq -r '.combined_markdown' "$job_dir/manifest.json")"
-  test -s "$combined_md"
-  rg -q "Synthetic Page 1" "$combined_md"
-  rg -q "Synthetic Page ${pages}" "$combined_md"
-  expected_batches=$(( (pages + batch_size - 1) / batch_size ))
-  actual_batches="$(rg -c '^<!-- pages ' "$combined_md")"
-  test "$actual_batches" -eq "$expected_batches"
-  printf 'job_dir=%s\n' "$job_dir"
+  jq -r '.markdown_path' "{{job_dir}}/manifest.json"
 
-mineru-batch-experiment pdf batch_sizes='1,2,4' start_page='0' method='auto' heartbeat='5' render_threads='1' min_inference_batch='1': sync
+kaggle-extract-sterk owner='' poll='30' timeout='' accelerator='' device='' enable_gpu='1' formula='1' table='' cleanup_remote='1' save_artifacts='0' virtual_vram_size='':
+  just kaggle-extract-pdf "{{sterk_pdf}}" "{{owner}}" auto en pipeline "{{device}}" huggingface "{{poll}}" "{{timeout}}" "{{accelerator}}" "{{enable_gpu}}" "{{formula}}" "{{table}}" "{{cleanup_remote}}" "{{save_artifacts}}" "{{virtual_vram_size}}"
+
+kaggle-prepare-sterk owner accelerator='' device='' enable_gpu='1' formula='1' table='' cleanup_remote='1' virtual_vram_size='':
+  just kaggle-prepare-pdf "{{sterk_pdf}}" "{{owner}}" auto en pipeline "{{device}}" huggingface "{{accelerator}}" "{{enable_gpu}}" "{{formula}}" "{{table}}" "{{cleanup_remote}}" "{{virtual_vram_size}}"
+
+kaggle-extract-pdf-tables pdf owner='' poll='30' timeout='' accelerator='' device='' enable_gpu='1' formula='1' cleanup_remote='1' save_artifacts='0' virtual_vram_size='':
+  just kaggle-extract-pdf "{{pdf}}" "{{owner}}" auto en pipeline "{{device}}" huggingface "{{poll}}" "{{timeout}}" "{{accelerator}}" "{{enable_gpu}}" "{{formula}}" 1 "{{cleanup_remote}}" "{{save_artifacts}}" "{{virtual_vram_size}}"
+
+
+mistral-ocr-pdf pdf pages='' table_format='' output_dir='':
   #!/usr/bin/env bash
   set -euxo pipefail
-  pdf="{{pdf}}"
-  stem="$(basename "$pdf")"
-  stem="${stem%.*}"
-  slug="$(printf '%s' "$stem" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-')"
-  slug="${slug#-}"
-  slug="${slug%-}"
-  ts="$(date -u +%Y%m%dT%H%M%SZ)"
-  experiment_dir="{{experiments_dir}}/${slug}-batch-profile-${ts}"
-  mkdir -p "$experiment_dir"
-  "{{venv_bin}}/python" scripts/profile_mineru_batch_sizes.py \
-    --pdf "$pdf" \
-    --experiment-dir "$experiment_dir" \
-    --batch-sizes "{{batch_sizes}}" \
-    --start-page "{{start_page}}" \
-    --method "{{method}}" \
-    --lang en \
-    --heartbeat-seconds "{{heartbeat}}" \
-    --render-threads "{{render_threads}}" \
-    --min-inference-batch "{{min_inference_batch}}" \
-    --model-source huggingface
-  printf 'experiment_dir=%s\n' "$experiment_dir"
-  cat "$experiment_dir/summary.md"
-
-lorem-batch-experiment pages='4' batch_sizes='1,2,4' start_page='0' method='txt' heartbeat='5': sync
-  #!/usr/bin/env bash
-  set -euxo pipefail
-  pdf="artifacts/lorem-batch-profile-${pages}p.pdf"
-  just lorem-pdf "{{pages}}" "$pdf"
-  just mineru-batch-experiment "$pdf" "{{batch_sizes}}" "{{start_page}}" "{{method}}" "{{heartbeat}}" 1 1
-
-extract-sterk batch_size=default_batch_size heartbeat=default_heartbeat:
-  just extract-pdf "{{sterk_pdf}}" "{{batch_size}}" auto en "{{heartbeat}}"
-
-launch-sterk-mineru batch_size=default_batch_size heartbeat=default_heartbeat:
-  just launch-extract-pdf "{{sterk_pdf}}" "{{batch_size}}" auto en "{{heartbeat}}"
+  cmd=( direnv exec . uv run pdf-mistral
+    --pdf "{{pdf}}" )
+  if [ -n "{{pages}}" ]; then
+    cmd+=( --pages "{{pages}}" )
+  fi
+  if [ -n "{{table_format}}" ]; then
+    cmd+=( --table-format "{{table_format}}" )
+  fi
+  if [ -n "{{output_dir}}" ]; then
+    cmd+=( --output-dir "{{output_dir}}" )
+  fi
+  "${cmd[@]}"

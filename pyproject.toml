@@ -1,18 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "pdf-extraction"
 version = "0.1.0"
-description = "Smoke-test PDF to Markdown extraction with Docling and MinerU"
+description = "Kaggle-only MinerU notebook orchestration for PDF extraction"
 requires-python = ">=3.12"
 dependencies = [
-  "docling",
-  "mineru[pipeline]",
-  "psutil>=7.2.2",
+  "kaggle>=2.0.0",
   "pypdf>=6.8.0",
-  "weasyprint",
+  "requests>=2.32.5",
+  "openai>=1.0.0",
+  "tiktoken>=0.7.0",
+  "mistralai>=1.0.0",
 ]
 
-[tool.uv]
-package = false
-
-[tool.uv.sources]
-mineru = { path = "../src/MinerU", editable = true }
+[project.scripts]
+pdf-correct = "pdf_extraction.cli.corrections:main"
+pdf-mineru = "pdf_extraction.cli.mineru:main"
+pdf-mistral = "pdf_extraction.cli.mistral:main"

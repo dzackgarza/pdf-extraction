@@ -14,9 +14,25 @@ dependencies = [
   "openai>=1.0.0",
   "tiktoken>=0.7.0",
   "mistralai>=1.0.0",
+  "pydantic>=2.12.5",
+  "cyclopts>=2.0.0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0",
+  "pyright>=1.1.0",
+  "ruff>=0.8.0",
 ]
 
 [project.scripts]
 pdf-correct = "pdf_extraction.cli.corrections:main"
 pdf-mineru = "pdf_extraction.cli.mineru:main"
 pdf-mistral = "pdf_extraction.cli.mistral:main"
+pdf-status = "pdf_extraction.cli.status:main"
+pdf-submit = "pdf_extraction.cli.submit:main"
+pdf-download = "pdf_extraction.cli.download:main"
+pdf-refresh = "pdf_extraction.cli.refresh:main"
+pdf-merge = "pdf_extraction.cli.merge:main"
+pdf-poll = "pdf_extraction.cli.poll:main"
+pdf-batch = "pdf_extraction.cli.batch:main"

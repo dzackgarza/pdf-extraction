@@ -9,3 +9,9 @@ mineru.json
 mineru_extraction.log
 mineru_speed_test/
 mineru_test_output/
+*.log
+*_pid.txt
+pspace_*.txt
+resume_*.py
+test_*.pdf
+test_*.md

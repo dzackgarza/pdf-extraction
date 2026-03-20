@@ -24,7 +24,7 @@ fmt:
 typecheck: sync
   uv run pyright .
 
-kaggle-extract-pdf pdf owner='' method='auto' lang='en' backend='pipeline' device='' model_source='huggingface' poll='30' timeout='' accelerator='' enable_gpu='1' formula='1' table='' cleanup_remote='1' save_artifacts='0' virtual_vram_size='' batch_size='200': sync
+kaggle-extract-pdf pdf owner='' method='auto' lang='en' backend='pipeline' device='' model_source='huggingface' poll='30' timeout='' accelerator='' enable_gpu='1' formula='1' table='' cleanup_remote='1' save_artifacts='0' virtual_vram_size='' batch_size='200' max_parallel='1': sync
   #!/usr/bin/env bash
   set -euxo pipefail
   cmd=( "uv" "run" "pdf-mineru"
@@ -34,7 +34,8 @@ kaggle-extract-pdf pdf owner='' method='auto' lang='en' backend='pipeline' devic
     --backend "{{backend}}"
     --model-source "{{model_source}}"
     --poll-seconds "{{poll}}"
-    --batch-size "{{batch_size}}" )
+    --batch-size "{{batch_size}}"
+    --max-parallel "{{max_parallel}}" )
   if [ -n "{{owner}}" ]; then
     cmd+=( --owner "{{owner}}" )
   fi

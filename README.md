@@ -340,6 +340,306 @@ Or after installation:
 pdf-mineru --pdf /path/to/document.pdf
 ```
 
+## Running Long-Running Jobs on Remote Servers
+
+For large-scale extractions (hundreds of PDFs or multi-gigabyte documents), run this tool on a remote server with persistent connectivity. This section covers setting up secure access and managing long-running sessions.
+
+### Overview
+
+```
+┌──────────────┐     ┌─────────────────┐     ┌──────────────┐
+│  Your Local  │────▶│  cloudflared    │────▶│  Remote      │
+│  Machine     │     │  Tunnel         │     │  Server      │
+│              │     │  (SSH)          │     │  (tmux)      │
+└──────────────┘     └─────────────────┘     └──────────────┘
+                                              │
+                                              ▼
+                                       ┌──────────────┐
+                                       │  Kaggle API  │
+                                       │  (extract)   │
+                                       └──────────────┘
+```
+
+**Why this setup:**
+
+- **cloudflared**: Zero-trust SSH tunnel without opening firewall ports
+- **tmux/screen**: Sessions survive SSH disconnects and network issues
+- **Remote server**: Dedicated machine for uninterrupted extraction jobs
+
+### Step 1: Set Up Cloudflare Tunnel for SSH
+
+#### Prerequisites
+
+- Cloudflare account (free tier sufficient)
+- Domain managed by Cloudflare
+- Remote server with outbound internet access
+
+#### On Your Remote Server
+
+```bash
+# Install cloudflared (Linux)
+curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+sudo dpkg -i cloudflared.deb && rm cloudflared.deb
+
+# Authenticate with Cloudflare
+cloudflared tunnel login
+
+# Create a tunnel (replace with your tunnel name)
+cloudflared tunnel create pdf-extraction-server
+
+# Configure the tunnel
+cat > ~/.cloudflared/pdf-extraction-server.yml <<EOF
+tunnel: pdf-extraction-server
+credentials-file: /home/youruser/.cloudflared/pdf-extraction-server.json
+
+ingress:
+  - hostname: pdf.yourdomain.com
+    service: ssh://localhost:22
+  - service: http_status:404
+EOF
+
+# Run the tunnel (test first)
+cloudflared tunnel run pdf-extraction-server
+```
+
+#### Create a Systemd Service (Recommended)
+
+```bash
+# Create service file
+sudo tee /etc/systemd/system/cloudflared-pdf-tunnel.service <<EOF
+[Unit]
+Description=Cloudflare Tunnel for PDF Extraction SSH
+After=network.target
+
+[Service]
+Type=simple
+User=youruser
+ExecStart=/usr/bin/cloudflared tunnel run pdf-extraction-server
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Enable and start
+sudo systemctl daemon-reload
+sudo systemctl enable cloudflared-pdf-tunnel
+sudo systemctl start cloudflared-pdf-tunnel
+sudo systemctl status cloudflared-pdf-tunnel
+```
+
+#### Configure DNS
+
+In Cloudflare Dashboard → DNS → Add Record:
+
+- **Type:** CNAME
+- **Name:** pdf (or your subdomain)
+- **Target:** pdf-extraction-server.cfargotunnel.com
+- **Proxy:** Enabled (orange cloud)
+
+### Step 2: Connect via SSH
+
+From your local machine:
+
+```bash
+# Connect through the tunnel
+ssh -o "ProxyCommand cloudflared access ssh --hostname %h" youruser@pdf.yourdomain.com
+
+# Or add to ~/.ssh/config for convenience
+cat >> ~/.ssh/config <<EOF
+
+Host pdf-server
+    HostName pdf.yourdomain.com
+    User youruser
+    ProxyCommand cloudflared access ssh --hostname %h
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+EOF
+
+# Now connect simply with
+ssh pdf-server
+```
+
+### Step 3: Set Up tmux for Session Management
+
+#### Install tmux (if not present)
+
+```bash
+# Ubuntu/Debian
+sudo apt install tmux
+
+# CentOS/RHEL
+sudo yum install tmux
+
+# macOS
+brew install tmux
+```
+
+#### Basic tmux Workflow
+
+```bash
+# Start a new session
+tmux new -s extraction
+
+# Inside tmux, run your extraction
+pdf-mineru --pdf /data/large-book.pdf --save-artifacts
+
+# Detach from session (leaves it running)
+# Press Ctrl+b, then d
+
+# Reattach to session later
+tmux attach -t extraction
+
+# List all sessions
+tmux ls
+
+# Kill a session when done
+tmux kill-session -t extraction
+```
+
+#### tmux Configuration (Optional)
+
+```bash
+# Add to ~/.tmux.conf for better UX
+cat >> ~/.tmux.conf <<EOF
+# Use Ctrl+a instead of Ctrl+b
+set -g prefix C-a
+bind C-a send-prefix
+
+# Mouse support
+set -g mouse on
+
+# Better window navigation
+bind n new-window
+bind c new-window
+bind x kill-pane
+
+# Status bar with session info
+set -g status-left '[#S] '
+set -g status-right '%H:%M %d-%b-%y'
+EOF
+
+# Reload config
+tmux source-file ~/.tmux.conf
+```
+
+### Step 4: Run Batch Extractions
+
+Create a batch script for processing multiple PDFs:
+
+```bash
+# Create extraction queue
+cat > extract-batch.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+# PDFs to process (one per line)
+PDFS=(
+    "/data/books/vakil-book.pdf"
+    "/data/papers/sterk-text.pdf"
+    "/data/papers/another-paper.pdf"
+)
+
+for pdf in "${PDFS[@]}"; do
+    echo "Processing: $pdf"
+    pdf-mineru --pdf "$pdf" --save-artifacts
+    echo "Completed: $pdf"
+done
+
+echo "All extractions complete!"
+EOF
+
+chmod +x extract-batch.sh
+```
+
+Run in tmux:
+
+```bash
+# Start session and run batch
+tmux new -s batch-extraction
+./extract-batch.sh
+
+# Detach: Ctrl+b, d
+# Reattach later: tmux attach -t batch-extraction
+```
+
+### Step 5: Monitor Progress
+
+#### Check Job Status
+
+```bash
+# From anywhere, SSH in and check
+ssh pdf-server 'tmux list-sessions'
+ssh pdf-server 'tmux capture-pane -pt extraction'
+
+# Or check extraction status directly
+ssh pdf-server 'just kaggle-batch-status /outputs/kaggle-jobs/*'
+```
+
+#### Set Up Notifications (Optional)
+
+```bash
+# Add to your batch script for email notifications
+send_notification() {
+    local subject="$1"
+    local message="$2"
+    echo "$message" | mail -s "$subject" your@email.com
+}
+
+# Or use webhook (e.g., Discord, Slack)
+webhook_notify() {
+    local message="$1"
+    curl -X POST "$WEBHOOK_URL" \
+         -H "Content-Type: application/json" \
+         -d "{\"content\": \"$message\"}"
+}
+```
+
+### Troubleshooting
+
+**Tunnel won't connect:**
+
+```bash
+# Check tunnel status
+cloudflared tunnel list
+systemctl status cloudflared-pdf-tunnel
+journalctl -u cloudflared-pdf-tunnel -n 50
+```
+
+**tmux session lost:**
+
+```bash
+# List orphaned sessions
+tmux ls
+
+# Force reattach (if session seems stuck)
+tmux attach -t extraction || tmux new -s extraction
+```
+
+**SSH disconnects frequently:**
+
+```bash
+# Add to ~/.ssh/config
+Host pdf-server
+    ServerAliveInterval 30
+    ServerAliveCountMax 5
+    TCPKeepAlive yes
+```
+
+### Best Practices
+
+1. **Always use tmux/screen** - Never run long jobs in raw SSH sessions
+2. **Save artifacts** - Use `--save-artifacts` to preserve job directories for debugging
+3. **Monitor disk space** - Large extractions can fill disks quickly
+4. **Rate limit submissions** - Don't overwhelm Kaggle API with parallel jobs
+5. **Log everything** - Redirect output to log files for audit trails
+
+```bash
+# Example: Run with full logging
+pdf-mineru --pdf /data/book.pdf --save-artifacts 2>&1 | tee extraction-$(date +%Y%m%d%H%M%S).log
+```
+
 ## Performance Benchmarks
 
 **Peters-Sterk text (491 pages) on Kaggle P100:**

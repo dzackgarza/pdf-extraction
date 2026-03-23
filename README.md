@@ -9,11 +9,16 @@ Remote-first PDF-to-Markdown extraction using [MinerU](https://github.com/openda
 If you have a GPU locally, run MinerU directly:
 
 ```bash
-# Install MinerU
-pip install mineru[pipeline]
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create project with MinerU
+mkdir pdf-work && cd pdf-work
+uv init
+uv add "mineru[pipeline]"
 
 # Extract a PDF locally
-mineru -p /path/to/document.pdf -o output_dir -b pipeline -f true -t false
+uv run mineru -p /path/to/document.pdf -o output_dir -b pipeline -f true -t false
 ```
 
 **Requirements:**
@@ -27,20 +32,18 @@ mineru -p /path/to/document.pdf -o output_dir -b pipeline -f true -t false
 Use this repo to run MinerU on Kaggle's free GPUs:
 
 ```bash
-# Install this package
-uv pip install -e .
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone and set up the project
+git clone https://github.com/dzackgarza/pdf-extraction.git
+cd pdf-extraction
+
+# Install dependencies
+uv sync
 
 # Extract a single PDF (GPU-accelerated on Kaggle)
-pdf-mineru --pdf /absolute/path/to/document.pdf
-
-# Or use just recipes
-just kaggle-extract-pdf /absolute/path/to/document.pdf
-
-# Extract with table parsing enabled (default: formulas only)
-just kaggle-extract-pdf-tables /absolute/path/to/document.pdf
-
-# Run a Mistral OCR probe (for comparison or sparse testing)
-just mistral-ocr-pdf /absolute/path/to/document.pdf
+uv run pdf-mineru --pdf /absolute/path/to/document.pdf
 ```
 
 Output markdown is placed next to the original PDF. Remote Kaggle resources are automatically cleaned up after successful extraction.
@@ -51,29 +54,42 @@ Output markdown is placed next to the original PDF. Remote Kaggle resources are 
 
 - **NVIDIA GPU** with CUDA support (8GB+ VRAM recommended)
 - **Python 3.10-3.12**
-- **MinerU** installed via `pip install mineru[pipeline]`
+- **[`uv`](https://github.com/astral-sh/uv)** package manager
 
 ### For Kaggle Workflow
 
 - **Kaggle account** with API credentials configured (`~/.kaggle/kaggle.json` or env vars)
-- **Python 3.12+** with [`uv`](https://github.com/astral-sh/uv) for dependency management
-- **[`just`](https://github.com/casey/just)** for running recipes (optional)
+- **[`uv`](https://github.com/astral-sh/uv)** package manager
 
 ## Installation
 
-### Install This Package
+### Install uv
+
+[`uv`](https://github.com/astral-sh/uv) is a fast Python package manager. Install it once:
 
 ```bash
-# Clone and install with uv (recommended)
-git clone https://github.com/dzackgarza/pdf-extraction.git
-cd pdf-extraction
-uv pip install -e .
-
-# Or with pip
-pip install -e .
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-This installs the `pdf-mineru` CLI entry point and all dependencies.
+### Set Up the Project
+
+```bash
+# Clone the repository
+git clone https://github.com/dzackgarza/pdf-extraction.git
+cd pdf-extraction
+
+# Install dependencies (creates .venv automatically)
+uv sync
+```
+
+### Run Commands
+
+Always use `uv run` — no need to activate the virtual environment:
+
+```bash
+uv run pdf-mineru --pdf /path/to/file.pdf
+uv run pdf-status /path/to/job-directory
+```
 
 ### Configure Kaggle API
 
@@ -82,7 +98,7 @@ This installs the `pdf-mineru` CLI entry point and all dependencies.
 3. Download `kaggle.json` and place it at `~/.kaggle/kaggle.json`
 4. Set permissions: `chmod 600 ~/.kaggle/kaggle.json`
 
-Alternatively, set environment variables:
+Or set environment variables:
 
 ```bash
 export KAGGLE_USERNAME=your-username
@@ -96,14 +112,16 @@ export KAGGLE_KEY=your-api-key
 For users with local GPU:
 
 ```bash
-# Install MinerU
-pip install mineru[pipeline]
+# Create a new project with MinerU
+mkdir pdf-work && cd pdf-work
+uv init
+uv add "mineru[pipeline]"
 
 # Basic extraction (formula parsing enabled, tables disabled)
-mineru -p /path/to/document.pdf -o output_dir -b pipeline -f true -t false
+uv run mineru -p /path/to/document.pdf -o output_dir -b pipeline -f true -t false
 
 # With table parsing enabled
-mineru -p /path/to/document.pdf -o output_dir -b pipeline -f true -t true
+uv run mineru -p /path/to/document.pdf -o output_dir -b pipeline -f true -t true
 ```
 
 **Key MinerU options:**
@@ -118,14 +136,10 @@ mineru -p /path/to/document.pdf -o output_dir -b pipeline -f true -t true
 
 ### 2. Kaggle GPU Extraction (This Repo)
 
-Uses the Kaggle script (`src/pdf_extraction/cli/mineru.py`) to run MinerU remotely:
+Uses the Kaggle script (`src/pdf_extraction/mineru/kaggle.py`) to run MinerU remotely:
 
 ```bash
-# Using the CLI directly
-pdf-mineru --pdf /path/to/document.pdf
-
-# Using just recipe (wrapper)
-just kaggle-extract-pdf /path/to/document.pdf
+uv run pdf-mineru --pdf /path/to/document.pdf
 ```
 
 **What happens:**

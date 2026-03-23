@@ -5,6 +5,13 @@ venv_bin := ".venv/bin"
 default:
   @just --list
 
+setup:
+  @echo "Installing uv..."
+  @curl -LsSf https://astral.sh/uv/install.sh | sh
+  @echo "Creating virtual environment and installing dependencies..."
+  uv sync
+  @echo "Setup complete! Run commands with: uv run <command>"
+
 sync:
   uv sync
 

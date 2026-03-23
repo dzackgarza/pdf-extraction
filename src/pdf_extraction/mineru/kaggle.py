@@ -6,7 +6,7 @@ import os
 import re
 import shutil
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 from zipfile import ZipFile
@@ -14,7 +14,9 @@ from zipfile import ZipFile
 from pypdf import PdfReader, PdfWriter
 
 
-def split_pdf(pdf_path: Path, batch_size: int, output_dir: Path) -> list[tuple[Path, int, int]]:
+def split_pdf(
+    pdf_path: Path, batch_size: int, output_dir: Path
+) -> list[tuple[Path, int, int]]:
     """Split PDF into multiple files of batch_size pages each."""
     reader = PdfReader(pdf_path)
     total_pages = len(reader.pages)
@@ -30,9 +32,9 @@ def split_pdf(pdf_path: Path, batch_size: int, output_dir: Path) -> list[tuple[P
         batch_path = output_dir / batch_name
         with batch_path.open("wb") as f:
             writer.write(f)
-        
+
         batches.append((batch_path, start_page + 1, end_page))
-    
+
     return batches
 
 
@@ -59,20 +61,25 @@ def merge_extractions(batch_data: list[dict], output_md_path: Path):
             alt_text = match.group(1)
             # group 2 is assets/images
             orig_img_name = match.group(3)
-            new_img_name = f"batch_{i+1}_{orig_img_name}"
-            
+            new_img_name = f"batch_{i + 1}_{orig_img_name}"
+
             src_img = batch_assets_dir / orig_img_name
             if src_img.exists():
                 shutil.copy2(src_img, final_assets_dir / new_img_name)
-            
+
             return f"![{alt_text}]({assets_dir_name}/{new_img_name})"
 
         new_content = img_regex.sub(replace_img, content)
-        final_md_content.append(f"<!-- Batch {i+1} (Pages {batch['start_page']}-{batch['end_page']}) -->\n" + new_content)
+        final_md_content.append(
+            f"<!-- Batch {i + 1} (Pages {batch['start_page']}-{batch['end_page']}) -->\n"
+            + new_content
+        )
 
     output_md_path.write_text("\n\n".join(final_md_content), encoding="utf-8")
     print(f"Merged {len(batch_data)} batches into {output_md_path}")
     print(f"Assets consolidated in {final_assets_dir}")
+
+
 import requests
 from requests import HTTPError
 
@@ -90,11 +97,11 @@ REMOTE_BUNDLE_PATH = REMOTE_WORK_DIR / "mineru-output.zip"
 
 
 def utc_timestamp() -> str:
-    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
 def compact_timestamp() -> str:
-    return datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+    return datetime.now(UTC).strftime("%Y%m%d%H%M%S")
 
 
 def slugify(value: str) -> str:
@@ -124,14 +131,20 @@ def append_event(events_path: Path, event: str, **fields: object) -> None:
         handle.write("\n")
 
 
-def record_extraction_history(pdf_path: Path, page_count: int, elapsed_seconds: float, status: str, failure_reason: str | None = None) -> None:
+def record_extraction_history(
+    pdf_path: Path,
+    page_count: int,
+    elapsed_seconds: float,
+    status: str,
+    failure_reason: str | None = None,
+) -> None:
     history_file = Path("EXTRACTIONS.md")
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
     file_name = pdf_path.name
     minutes = int(elapsed_seconds // 60)
     seconds = int(elapsed_seconds % 60)
     time_str = f"{minutes:02d}m {seconds:02d}s"
-    
+
     display_status = status.upper()
     if failure_reason:
         display_status += f" ({failure_reason})"
@@ -151,12 +164,18 @@ def get_page_count(pdf_path: Path) -> int:
         return len(PdfReader(handle).pages)
 
 
-def build_remote_slug(pdf_stem: str, role: str, stamp: str, batch_num: int | None = None, max_length: int = 50) -> str:
+def build_remote_slug(
+    pdf_stem: str,
+    role: str,
+    stamp: str,
+    batch_num: int | None = None,
+    max_length: int = 50,
+) -> str:
     if batch_num is not None:
         suffix = f"mineru-{role}-{batch_num}-{stamp}"
     else:
         suffix = f"mineru-{role}-{stamp}"
-    
+
     room = max_length - len(suffix) - 1
     assert room >= 3, f"max_length {max_length} is too small for suffix {suffix}"
     trimmed = slugify(pdf_stem)[:room].strip("-") or "pdf"
@@ -181,7 +200,9 @@ def download_kernel_outputs(
     downloads_dir: Path,
     file_pattern: str,
 ) -> tuple[list[str], str | None]:
-    from kagglesdk.kernels.types.kernels_api_service import ApiListKernelSessionOutputRequest
+    from kagglesdk.kernels.types.kernels_api_service import (
+        ApiListKernelSessionOutputRequest,
+    )
 
     compiled_pattern = re.compile(file_pattern)
     api.validate_kernel_string(kernel_ref)
@@ -198,7 +219,9 @@ def download_kernel_outputs(
             request.kernel_slug = kernel_slug
             request.page_size = 100
             request.page_token = next_page_token
-            response = kaggle.kernels.kernels_api_client.list_kernel_session_output(request)
+            response = kaggle.kernels.kernels_api_client.list_kernel_session_output(
+                request
+            )
             if response.log and not wrote_log:
                 log_path = downloads_dir / f"{kernel_slug}.log"
                 log_path.write_text(response.log, encoding="utf-8")
@@ -249,7 +272,9 @@ def notebook_cell(source: str) -> dict[str, object]:
 def build_notebook(pdf_name: str, args: argparse.Namespace) -> dict[str, object]:
     formula_value = "true" if args.formula else "false"
     table_value = "true" if args.table else "false"
-    virtual_vram_size = "" if args.virtual_vram_size is None else str(args.virtual_vram_size)
+    virtual_vram_size = (
+        "" if args.virtual_vram_size is None else str(args.virtual_vram_size)
+    )
     install_source = "\n".join(
         [
             "import os",
@@ -259,7 +284,14 @@ def build_notebook(pdf_name: str, args: argparse.Namespace) -> dict[str, object]
             "import sys",
             "",
             "os.environ['MPLBACKEND'] = 'Agg'",
-            "subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', 'mineru[pipeline]'], check=True)",
+            "# Create venv with uv and install PyTorch compatible with P100 (sm_60)",
+            "VENV_DIR = Path('/kaggle/working/venv')",
+            "subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', 'uv'], check=True)",
+            "subprocess.run(['uv', 'venv', '--seed', str(VENV_DIR)], check=True)",
+            "venv_pip = str(VENV_DIR / 'bin' / 'pip')",
+            "subprocess.run([venv_pip, 'install', '--upgrade', 'pip'], check=True)",
+            "subprocess.run([venv_pip, 'install', 'torch==2.2.0', 'torchvision==0.17.0', 'torchaudio==2.2.0', '--index-url', 'https://download.pytorch.org/whl/cu118'], check=True)",
+            "subprocess.run([venv_pip, 'install', '-q', 'mineru[pipeline]'], check=True)",
             f"WORK_DIR = Path('{REMOTE_WORK_DIR.as_posix()}')",
             f"OUTPUT_DIR = Path('{REMOTE_OUTPUT_DIR.as_posix()}')",
             f"SUMMARY_PATH = Path('{REMOTE_SUMMARY_PATH.as_posix()}')",
@@ -349,14 +381,15 @@ def build_notebook(pdf_name: str, args: argparse.Namespace) -> dict[str, object]
             f"    '{table_value}',",
             "]",
             "env = os.environ.copy()",
-            "env['MINERU_MODEL_SOURCE'] = "
-            f"'{args.model_source}'",
+            f"env['MINERU_MODEL_SOURCE'] = '{args.model_source}'",
             "env['MPLBACKEND'] = 'Agg'",
             f"if '{virtual_vram_size}':",
             f"    env['MINERU_VIRTUAL_VRAM_SIZE'] = '{virtual_vram_size}'",
             "print('effective MINERU_VIRTUAL_VRAM_SIZE', env.get('MINERU_VIRTUAL_VRAM_SIZE'), flush=True)",
+            "# Use venv with compatible PyTorch",
+            "venv_python = '/kaggle/working/venv/bin/python'",
             "print(json.dumps({'event': 'mineru_start', 'pdf': str(input_pdf), 'command': command}, sort_keys=True), flush=True)",
-            "result = subprocess.run(command, check=False, env=env)",
+            "result = subprocess.run([venv_python, '-m', 'mineru'] + command[1:], check=False, env=env)",
             "output_files = collect_relative_files(OUTPUT_DIR)",
             "working_files = collect_relative_files(WORK_DIR)",
             "markdown_path = find_markdown_path(OUTPUT_DIR, input_pdf.stem) if result.returncode == 0 else None",
@@ -416,28 +449,48 @@ def parse_args() -> argparse.Namespace:
         description="Package and run a one-off MinerU extraction job on Kaggle.",
     )
     parser.add_argument("--pdf", type=Path, required=True, help="Input PDF path.")
-    parser.add_argument("--job-dir", type=Path, help="Output directory for local job artifacts.")
-    parser.add_argument("--owner", help="Kaggle owner slug. Required when auth does not expose a username.")
+    parser.add_argument(
+        "--job-dir", type=Path, help="Output directory for local job artifacts."
+    )
+    parser.add_argument(
+        "--owner",
+        help="Kaggle owner slug. Required when auth does not expose a username.",
+    )
     parser.add_argument(
         "--method",
         choices=["auto", "txt", "ocr"],
         default="auto",
         help="MinerU pipeline parse method.",
     )
-    parser.add_argument("--lang", default="en", help="OCR language hint for MinerU pipeline mode.")
-    parser.add_argument("--backend", default="pipeline", help="MinerU backend to use in Kaggle.")
+    parser.add_argument(
+        "--lang", default="en", help="OCR language hint for MinerU pipeline mode."
+    )
+    parser.add_argument(
+        "--backend", default="pipeline", help="MinerU backend to use in Kaggle."
+    )
     parser.add_argument(
         "--device",
         help="MinerU device selector for the Kaggle notebook. Defaults to cuda when GPU is enabled, else cpu.",
     )
-    parser.add_argument("--model-source", default="huggingface", help="MinerU model source.")
+    parser.add_argument(
+        "--model-source", default="huggingface", help="MinerU model source."
+    )
     parser.add_argument(
         "--virtual-vram-size",
         type=int,
         help="Optional MINERU_VIRTUAL_VRAM_SIZE value for Kaggle notebook runs.",
     )
-    parser.add_argument("--poll-seconds", type=float, default=DEFAULT_POLL_SECONDS, help="Polling interval for Kaggle status checks.")
-    parser.add_argument("--timeout-seconds", type=int, help="Optional Kaggle run timeout and local poll ceiling.")
+    parser.add_argument(
+        "--poll-seconds",
+        type=float,
+        default=DEFAULT_POLL_SECONDS,
+        help="Polling interval for Kaggle status checks.",
+    )
+    parser.add_argument(
+        "--timeout-seconds",
+        type=int,
+        help="Optional Kaggle run timeout and local poll ceiling.",
+    )
     parser.add_argument(
         "--formula",
         action=argparse.BooleanOptionalAction,
@@ -503,7 +556,9 @@ def events_path(manifest: dict[str, object]) -> Path:
     return Path(cast(str, manifest["job_dir"])) / "events.jsonl"
 
 
-def persist_state(manifest: dict[str, object], phase: str, failure: str | None = None) -> None:
+def persist_state(
+    manifest: dict[str, object], phase: str, failure: str | None = None
+) -> None:
     manifest["phase"] = phase
     if failure is None:
         manifest.pop("failure", None)
@@ -527,27 +582,35 @@ def persist_state(manifest: dict[str, object], phase: str, failure: str | None =
     write_json(status_path(manifest), status_payload)
 
 
-def resolve_owner(args_owner: str | None, api: KaggleApi | None, prepare_only: bool) -> str:
+def resolve_owner(
+    args_owner: str | None, api: KaggleApi | None, prepare_only: bool
+) -> str:
     if args_owner:
         return args_owner
     if prepare_only:
-        raise SystemExit("--owner is required with --prepare-only when Kaggle auth is not consulted")
+        raise SystemExit(
+            "--owner is required with --prepare-only when Kaggle auth is not consulted"
+        )
     assert api is not None, "authenticated api is required to resolve owner"
     username = api.get_config_value(api.CONFIG_NAME_USER)
     if username:
         return username
-    raise SystemExit("could not resolve the Kaggle username from auth; pass --owner explicitly")
+    raise SystemExit(
+        "could not resolve the Kaggle username from auth; pass --owner explicitly"
+    )
 
 
-def prepare_job(owner: str, args: argparse.Namespace, batch_num: int | None = None) -> dict[str, object]:
+def prepare_job(
+    owner: str, args: argparse.Namespace, batch_num: int | None = None
+) -> dict[str, object]:
     stamp = compact_timestamp()
     pdf_slug = slugify(args.pdf.stem)
     job_stamp = utc_timestamp()
-    
+
     dir_name = f"{pdf_slug}-kaggle-{job_stamp}"
     if batch_num is not None:
         dir_name = f"{pdf_slug}-batch-{batch_num}-kaggle-{job_stamp}"
-        
+
     job_dir = args.job_dir or Path("outputs/kaggle-jobs") / dir_name
     job_dir = job_dir.expanduser().resolve()
     input_dataset_dir = job_dir / "input-dataset"
@@ -571,7 +634,9 @@ def prepare_job(owner: str, args: argparse.Namespace, batch_num: int | None = No
         "id": dataset_ref,
         "licenses": [{"name": "other"}],
         "description": f"Private one-off MinerU input for {args.pdf.name}",
-        "resources": [{"path": copied_pdf.name, "description": "Input PDF for MinerU extraction"}],
+        "resources": [
+            {"path": copied_pdf.name, "description": "Input PDF for MinerU extraction"}
+        ],
     }
     write_json(input_dataset_dir / "dataset-metadata.json", dataset_metadata)
 
@@ -628,7 +693,11 @@ def prepare_job(owner: str, args: argparse.Namespace, batch_num: int | None = No
 def authenticate_kaggle() -> KaggleApi:
     from kaggle.api.kaggle_api_extended import KaggleApi as RuntimeKaggleApi
 
-    oauth_enabled = os.environ.get("KAGGLE_ENABLE_OAUTH", "").lower() in {"1", "true", "yes"}
+    oauth_enabled = os.environ.get("KAGGLE_ENABLE_OAUTH", "").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
     username = os.environ.get("KAGGLE_USERNAME")
     key = os.environ.get("KAGGLE_KEY") or os.environ.get("KAGGLE_API_KEY")
     original_key = os.environ.get("KAGGLE_KEY")
@@ -669,7 +738,11 @@ def wait_for_dataset_ready(
         except HTTPError as exc:
             response = exc.response
             body = "" if response is None else response.text
-            if response is not None and response.status_code == 403 and "datasets.get" in body:
+            if (
+                response is not None
+                and response.status_code == 403
+                and "datasets.get" in body
+            ):
                 persist_state(manifest, "waiting_for_dataset")
                 append_event(
                     events_path(manifest),
@@ -678,22 +751,34 @@ def wait_for_dataset_ready(
                     http_status=response.status_code,
                     error_body=body,
                 )
-                if timeout_seconds is not None and time.monotonic() - started > timeout_seconds:
-                    raise SystemExit(f"timed out waiting for dataset {dataset_ref} to become readable") from exc
+                if (
+                    timeout_seconds is not None
+                    and time.monotonic() - started > timeout_seconds
+                ):
+                    raise SystemExit(
+                        f"timed out waiting for dataset {dataset_ref} to become readable"
+                    ) from exc
                 time.sleep(poll_seconds)
                 continue
             raise
         manifest["dataset_status"] = status
         persist_state(manifest, "waiting_for_dataset")
         if status != last_status:
-            append_event(events_path(manifest), "dataset_status", dataset_ref=dataset_ref, dataset_status=status)
+            append_event(
+                events_path(manifest),
+                "dataset_status",
+                dataset_ref=dataset_ref,
+                dataset_status=status,
+            )
             last_status = status
         if status == "ready":
             return
         if status in {"error", "failed"}:
             raise SystemExit(f"dataset {dataset_ref} entered terminal status {status}")
         if timeout_seconds is not None and time.monotonic() - started > timeout_seconds:
-            raise SystemExit(f"timed out waiting for dataset {dataset_ref} to become ready")
+            raise SystemExit(
+                f"timed out waiting for dataset {dataset_ref} to become ready"
+            )
         time.sleep(poll_seconds)
 
 
@@ -735,7 +820,9 @@ def extract_bundle(bundle_path: Path, target_dir: Path) -> None:
         archive.extractall(target_dir)
 
 
-def delete_remote_resources(api: KaggleApi, dataset_ref: str, kernel_ref: str) -> dict[str, object]:
+def delete_remote_resources(
+    api: KaggleApi, dataset_ref: str, kernel_ref: str
+) -> dict[str, object]:
     cleanup: dict[str, object] = {
         "attempted": True,
         "kernel_ref": kernel_ref,
@@ -760,7 +847,9 @@ def delete_remote_resources(api: KaggleApi, dataset_ref: str, kernel_ref: str) -
     return cleanup
 
 
-def submit_remote_job(api: KaggleApi, manifest: dict[str, object], args: argparse.Namespace) -> None:
+def submit_remote_job(
+    api: KaggleApi, manifest: dict[str, object], args: argparse.Namespace
+) -> None:
     dataset_ref = cast(str, manifest["dataset_ref"])
     kernel_ref = cast(str, manifest["kernel_ref"])
     owner = dataset_ref.split("/", 1)[0]
@@ -768,7 +857,12 @@ def submit_remote_job(api: KaggleApi, manifest: dict[str, object], args: argpars
     kernel_dir = cast(str, manifest["kernel_dir"])
 
     persist_state(manifest, "creating_dataset")
-    append_event(events_path(manifest), "creating_dataset", dataset_ref=dataset_ref, input_dataset_dir=input_dataset_dir)
+    append_event(
+        events_path(manifest),
+        "creating_dataset",
+        dataset_ref=dataset_ref,
+        input_dataset_dir=input_dataset_dir,
+    )
     dataset_result = api.dataset_create_new(
         folder=input_dataset_dir,
         public=False,
@@ -791,11 +885,18 @@ def submit_remote_job(api: KaggleApi, manifest: dict[str, object], args: argpars
         raise SystemExit(f"dataset create failed: {dataset_error}")
     if str(dataset_status).lower() == "error":
         raise SystemExit(f"dataset create failed with status {dataset_status}")
-    
-    wait_for_dataset_ready(api, dataset_ref, manifest, args.poll_seconds, args.timeout_seconds)
+
+    wait_for_dataset_ready(
+        api, dataset_ref, manifest, args.poll_seconds, args.timeout_seconds
+    )
 
     persist_state(manifest, "pushing_kernel")
-    append_event(events_path(manifest), "pushing_kernel", kernel_ref=kernel_ref, kernel_dir=kernel_dir)
+    append_event(
+        events_path(manifest),
+        "pushing_kernel",
+        kernel_ref=kernel_ref,
+        kernel_dir=kernel_dir,
+    )
     kernel_result = api.kernels_push(
         folder=kernel_dir,
         timeout=None if args.timeout_seconds is None else str(args.timeout_seconds),
@@ -819,15 +920,15 @@ def submit_remote_job(api: KaggleApi, manifest: dict[str, object], args: argpars
 
 
 def monitor_remote_jobs(
-    api: KaggleApi, 
-    manifests: list[dict[str, object]], 
-    poll_seconds: float, 
-    timeout_seconds: int | None
+    api: KaggleApi,
+    manifests: list[dict[str, object]],
+    poll_seconds: float,
+    timeout_seconds: int | None,
 ) -> None:
     """Monitor multiple kernels in parallel until all are terminal."""
     started = time.monotonic()
     last_statuses: dict[str, str] = {}
-    
+
     while True:
         all_done = True
         for manifest in manifests:
@@ -836,19 +937,21 @@ def monitor_remote_jobs(
             current_phase = cast(str, manifest.get("phase", ""))
             if current_phase in {"complete", "failed", "error"}:
                 continue
-            
+
             all_done = False
             response = api.kernels_status(kernel_ref)
             payload = response.to_dict() if hasattr(response, "to_dict") else {}
             status = str(payload.get("status") or response.status).lower()
             failure_message = getattr(response, "failure_message", None)
-            
+
             manifest["kernel_status"] = status
-            manifest["terminal_status"] = status if status in {"complete", "error"} else None
+            manifest["terminal_status"] = (
+                status if status in {"complete", "error"} else None
+            )
             manifest["kernel_failure_message"] = failure_message
-            
+
             persist_state(manifest, "running")
-            
+
             if status != last_statuses.get(kernel_ref):
                 append_event(
                     events_path(manifest),
@@ -859,17 +962,19 @@ def monitor_remote_jobs(
                 )
                 last_statuses[kernel_ref] = status
                 print(f"  [{kernel_ref}] status: {status}", flush=True)
-        
+
         if all_done:
             break
-            
+
         if timeout_seconds is not None and time.monotonic() - started > timeout_seconds:
             raise SystemExit("timed out waiting for one or more kernels to complete")
-            
+
         time.sleep(poll_seconds)
 
 
-def finalize_remote_job(api: KaggleApi, manifest: dict[str, object], args: argparse.Namespace) -> None:
+def finalize_remote_job(
+    api: KaggleApi, manifest: dict[str, object], args: argparse.Namespace
+) -> None:
     kernel_ref = cast(str, manifest["kernel_ref"])
     dataset_ref = cast(str, manifest["dataset_ref"])
     downloads_dir = Path(cast(str, manifest["downloads_dir"]))
@@ -886,7 +991,9 @@ def finalize_remote_job(api: KaggleApi, manifest: dict[str, object], args: argpa
         downloads_dir=str(downloads_dir),
         file_pattern=output_file_pattern,
     )
-    downloaded_files, next_page_token = download_kernel_outputs(api, kernel_ref, downloads_dir, output_file_pattern)
+    downloaded_files, next_page_token = download_kernel_outputs(
+        api, kernel_ref, downloads_dir, output_file_pattern
+    )
     manifest["downloaded_files"] = downloaded_files
     append_event(
         events_path(manifest),
@@ -898,29 +1005,35 @@ def finalize_remote_job(api: KaggleApi, manifest: dict[str, object], args: argpa
 
     summary_path = downloads_dir / REMOTE_SUMMARY_PATH.name
     bundle_path = downloads_dir / REMOTE_BUNDLE_PATH.name
-    
+
     if not summary_path.is_file():
         if terminal_kernel_status == "error":
-            raise RuntimeError(f"kernel {kernel_ref} failed: {kernel_failure_message or 'unknown error'}")
-        raise RuntimeError(f"expected worker summary was not downloaded: {summary_path}")
-    
+            raise RuntimeError(
+                f"kernel {kernel_ref} failed: {kernel_failure_message or 'unknown error'}"
+            )
+        raise RuntimeError(
+            f"expected worker summary was not downloaded: {summary_path}"
+        )
+
     run_summary = read_json(summary_path)
     manifest["summary_path"] = str(summary_path)
     manifest["run_summary"] = run_summary
-    
+
     if run_summary.get("complete") is not True:
         failure_message = run_summary.get("failure")
         return_code = run_summary.get("returncode")
         raise RuntimeError(
             f"notebook did not produce extraction output: {failure_message or f'returncode={return_code}'}"
         )
-    
+
     if not bundle_path.is_file():
-        raise RuntimeError(f"expected notebook bundle was not downloaded: {bundle_path}")
-    
+        raise RuntimeError(
+            f"expected notebook bundle was not downloaded: {bundle_path}"
+        )
+
     manifest["bundle_path"] = str(bundle_path)
     extract_bundle(bundle_path, extracted_dir)
-    
+
     markdown_relpath = run_summary.get("markdown_relpath")
     if isinstance(markdown_relpath, str) and markdown_relpath:
         markdown_path = extracted_dir / markdown_relpath
@@ -971,15 +1084,19 @@ def main() -> int:
         assert api is not None, "authenticated api is required for remote jobs"
         try:
             submit_remote_job(api, manifest, args)
-            monitor_remote_jobs(api, [manifest], args.poll_seconds, args.timeout_seconds)
+            monitor_remote_jobs(
+                api, [manifest], args.poll_seconds, args.timeout_seconds
+            )
             finalize_remote_job(api, manifest, args)
         except (SystemExit, Exception) as exc:
             failure = str(exc)
             persist_state(manifest, "failed", failure)
             append_event(events_path(manifest), "failed", error=failure)
-            
+
             elapsed_seconds = time.monotonic() - start_time
-            record_extraction_history(args.pdf, page_count, elapsed_seconds, "failed", failure)
+            record_extraction_history(
+                args.pdf, page_count, elapsed_seconds, "failed", failure
+            )
             raise
 
         markdown_path_str = manifest.get("markdown_path")
@@ -1010,25 +1127,29 @@ def main() -> int:
 
     else:
         # Parallel Batching logic with queueing
-        print(f"PDF has {page_count} pages, which exceeds batch size {args.batch_size}. Parallel batching (limit: {args.max_parallel})...")
-        temp_batch_dir = Path("outputs/tmp-batches") / f"{args.pdf.stem}-{compact_timestamp()}"
+        print(
+            f"PDF has {page_count} pages, which exceeds batch size {args.batch_size}. Parallel batching (limit: {args.max_parallel})..."
+        )
+        temp_batch_dir = (
+            Path("outputs/tmp-batches") / f"{args.pdf.stem}-{compact_timestamp()}"
+        )
         temp_batch_dir.mkdir(parents=True, exist_ok=True)
-        
+
         batches = split_pdf(args.pdf, args.batch_size, temp_batch_dir)
-        
+
         pending_manifests = []
         active_manifests = []
         batch_results = []
         failures = []
-        
+
         try:
             # 1. Prepare all manifests
             for i, (batch_pdf, start_pg, end_page) in enumerate(batches):
                 batch_args = argparse.Namespace(**vars(args))
                 batch_args.pdf = batch_pdf
                 batch_args.job_dir = None
-                
-                manifest = prepare_job(owner, batch_args, batch_num=i+1)
+
+                manifest = prepare_job(owner, batch_args, batch_num=i + 1)
                 manifest["start_page"] = start_pg
                 manifest["end_page"] = end_page
                 manifest["batch_num"] = i + 1
@@ -1045,12 +1166,16 @@ def main() -> int:
                 # Fill active queue
                 while pending_manifests and len(active_manifests) < args.max_parallel:
                     m = pending_manifests.pop(0)
-                    print(f"\nSubmitting Batch {m['batch_num']}/{len(batches)} (Pages {m['start_page']}-{m['end_page']})...")
+                    print(
+                        f"\nSubmitting Batch {m['batch_num']}/{len(batches)} (Pages {m['start_page']}-{m['end_page']})..."
+                    )
                     submit_remote_job(api, m, args)
                     active_manifests.append(m)
 
                 # Poll active jobs
-                monitor_remote_jobs(api, active_manifests, args.poll_seconds, args.timeout_seconds)
+                monitor_remote_jobs(
+                    api, active_manifests, args.poll_seconds, args.timeout_seconds
+                )
 
                 # Finalize finished jobs
                 still_active = []
@@ -1059,13 +1184,17 @@ def main() -> int:
                         print(f"  Finalizing Batch {m['batch_num']}...")
                         try:
                             finalize_remote_job(api, m, args)
-                            batch_results.append({
-                                "markdown_path": m["markdown_path"],
-                                "start_page": m["start_page"],
-                                "end_page": m["end_page"]
-                            })
+                            batch_results.append(
+                                {
+                                    "markdown_path": m["markdown_path"],
+                                    "start_page": m["start_page"],
+                                    "end_page": m["end_page"],
+                                }
+                            )
                         except Exception as exc:
-                            failures.append(f"Batch {m['batch_num']} (Pages {m['start_page']}-{m['end_page']}) failed: {exc}")
+                            failures.append(
+                                f"Batch {m['batch_num']} (Pages {m['start_page']}-{m['end_page']}) failed: {exc}"
+                            )
                     else:
                         still_active.append(m)
                 active_manifests = still_active
@@ -1075,33 +1204,45 @@ def main() -> int:
                     time.sleep(args.poll_seconds)
 
             if failures:
-                raise RuntimeError("One or more batches failed:\n" + "\n".join(failures))
+                raise RuntimeError(
+                    "One or more batches failed:\n" + "\n".join(failures)
+                )
 
             # 3. Merge results
             # Sort batch results by start_page to ensure correct order
             batch_results.sort(key=lambda x: x["start_page"])
-            
+
             final_md_path = args.pdf.with_suffix(".md")
             merge_extractions(batch_results, final_md_path)
-            
+
             elapsed_seconds = time.monotonic() - start_time
-            record_extraction_history(args.pdf, page_count, elapsed_seconds, "complete (parallel queued)")
-            
+            record_extraction_history(
+                args.pdf, page_count, elapsed_seconds, "complete (parallel queued)"
+            )
+
             if not args.save_artifacts:
                 print(f"Cleaning up temporary batch files: {temp_batch_dir}")
                 shutil.rmtree(temp_batch_dir)
                 # Manifest job_dirs are already cleaned up by finalize_remote_job if save_artifacts is False
-            
-            print(f"\nSuccessfully processed {page_count} pages in {len(batches)} batches.")
+
+            print(
+                f"\nSuccessfully processed {page_count} pages in {len(batches)} batches."
+            )
             print(f"Final output: {final_md_path}")
 
         except (Exception, BaseException) as exc:
             failure = str(exc)
             elapsed_seconds = time.monotonic() - start_time
-            record_extraction_history(args.pdf, page_count, elapsed_seconds, "failed (parallel queued)", failure)
+            record_extraction_history(
+                args.pdf,
+                page_count,
+                elapsed_seconds,
+                "failed (parallel queued)",
+                failure,
+            )
             print(f"Parallel batching failed: {failure}")
             raise
-        
+
         return 0
 
 

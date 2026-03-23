@@ -140,8 +140,8 @@ def submit_kernel(job_dir: Path, kernel_name: str) -> str:
     Raises:
         KaggleAPIError: If submission fails
     """
-    # Use kaggle kernels start to submit/update kernel
-    cmd = ["kaggle", "kernels", "start", kernel_name, "-p", str(job_dir)]
+    # Use kaggle kernels push to submit/update kernel (updated from 'start')
+    cmd = ["kaggle", "kernels", "push", "-p", str(job_dir)]
 
     try:
         result = subprocess.run(

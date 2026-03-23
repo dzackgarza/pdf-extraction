@@ -1,77 +1,50 @@
-# PDF Extraction Canonical Workflow
+# PDF Extraction - Agent Guidelines
 
-This repo is the canonical home for Kaggle-only MinerU extraction. Local Docling and local MinerU conversion paths are intentionally out of scope.
+This document provides operational context for agents working in this repository. For user-facing documentation, see [README.md](README.md).
 
-## Compute & Quotas
+## Scope
+
+- **In scope:** Kaggle-based MinerU extraction (remote GPU)
+- **Out of scope:** Local Docling, local MinerU, alternative extraction backends
+
+## Compute Quotas
 
 ### Kaggle (Primary)
-- **Quota**: 30 hours of GPU time per week (on P100/T4).
-- **Strategy**: This is the canonical workflow while compute time is available.
-- **Cleanup**: Remote kernels and input datasets are deleted automatically after successful download to save space and maintain privacy.
-- **Fallback**: If Kaggle limits are hit, fallback compute services are TBD.
 
-### Mistral OCR (Secondary / Probe)
-- **Model**: `mistral-ocr-latest`
-- **Tier**: "Exploration" (Free) on La Plateforme.
-- **Request Limits**: 50 MB and 1,000 pages per request.
-- **Tier Limits**: Strictly for evaluation/prototyping. Throttle is ~1 request per second (RPS).
-- **Usage**: Best for sparse probes or comparison. Run with `just mistral-ocr-pdf`.
+- **Weekly GPU quota:** 30 hours (P100/T4)
+- **Automatic cleanup:** Remote kernels and datasets deleted after successful download
+- **Fallback:** TBD when quota exhausted
 
-## Working Rules
+### Mistral OCR (Probe/Comparison Only)
 
-- **Use the justfile**: Never use ad hoc Kaggle commands or global installs.
-- **Runner**: `pdf-mineru` is the active extraction runner (defined in `src/pdf_extraction/cli/mineru.py`).
-- **Storage**: `outputs/kaggle-jobs/...` is the temporary local state for jobs.
-- **Result**: Successfully extracted markdowns are moved next to the original PDF, and local job artifacts are trashed by default (unless `--save-artifacts` is passed).
+- **Model:** `mistral-ocr-latest`
+- **Limits:** 50 MB, 1,000 pages per request; ~1 RPS throttle
+- **Use case:** Sparse probes, quality comparison
 
-## Primary Flow (Recipes)
+## Debugging Workflow
 
-Run a full remote extraction:
-```bash
-just kaggle-extract-pdf /abs/path/to/file.pdf
-```
+When a Kaggle job fails, investigate in this order:
 
-Math-paper default:
-- Table extraction is disabled unless you opt in with `just kaggle-extract-pdf-tables /abs/path/to/file.pdf`.
-- Formula extraction stays enabled by default.
+1. **Status check:** `just kaggle-job-status <job_dir>` or read `status.json` + `manifest.json`
+2. **Event timeline:** Read `events.jsonl` for phase transitions
+3. **Notebook logs:** Check `downloads/*.log` for execution output
+4. **MinerU summary:** Inspect `downloads/mineru-summary.json` for specific errors
 
-Prepare the local Kaggle dataset/kernel bundle without submitting it:
-```bash
-just kaggle-prepare-pdf /abs/path/to/file.pdf your-kaggle-username
-```
+**Key questions:**
 
-Inspect a job directory:
-```bash
-just kaggle-job-status /abs/path/to/job_dir
-```
+- Kernel phase: `complete` or `error`?
+- Did MinerU produce `mineru-summary.json` and `mineru-output.zip`?
+- Failure point: setup, execution, download, or MinerU itself?
 
-Convenience shortcut for the Peters-Sterk text:
-```bash
-just kaggle-extract-sterk
-```
+## Performance Priors
 
-Run a Mistral OCR probe:
-```bash
-just mistral-ocr-pdf /abs/path/to/file.pdf
-```
+- **Peters-Sterk (491 pages, P100):** ~24 pages/min (~21 min total)
+- **Small batches (5-10 pages):** ~3-4 pages/min (setup overhead dominates)
+- **Quality note:** Successful run ≠ clean output; math notation may need manual audit
 
-## Debugging Kaggle Jobs
+## Environment
 
-When asked why a Kaggle job did not finish, reconstruct the story from the existing job artifacts in this order:
-
-1. `just kaggle-job-status <job_dir>` or `status.json` plus `manifest.json`.
-2. `events.jsonl`.
-3. The downloaded Kaggle notebook log in `downloads/*.log`.
-4. `downloads/mineru-summary.json`.
-
-Check before anything else:
-- Did the kernel reach `complete` or `error`?
-- Did the notebook produce `mineru-summary.json` and `mineru-output.zip`?
-- Did the failure happen in notebook setup, Kaggle execution, output download, or MinerU itself?
-
-## Observed Kaggle Benchmarks
-
-- **Current Priors**: Peters-Sterk text (491 pages) on Kaggle GPU (P100) with MinerU `pipeline`.
-- **Throughput**: Full-book run averaged **23.68 pages/min** (~21 minutes total).
-- **Startup Overhead**: Small slices (5-10 pages) underpredict throughput (3-4 pages/min) because setup and model warmup dominate.
-- **Quality Warning**: Runtime success != clean extraction. The Sterk book still required manual mathematical auditing for notation corruption (e.g., `^ { ! }` transposes).
+- **Runner:** `pdf-mineru` (entry point: `src/pdf_extraction/cli/mineru.py`)
+- **Job storage:** `outputs/kaggle-jobs/` (temporary, cleaned by default)
+- **Output:** Markdown placed next to source PDF
+- **Auth:** Kaggle API via `~/.kaggle/kaggle.json` or env vars; Mistral via `MISTRAL_API_KEY`

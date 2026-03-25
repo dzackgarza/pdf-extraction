@@ -1,0 +1,665 @@
+# PDF Extraction Gaps - Cleaning Tracking
+
+**Source:** `/home/dzack/Dropbox/Library/` on `dzack@ssh-work.dzackgarza.com`
+**Total PDFs:** 615
+**Generated:** Mon Mar 23 06:41:52 PM UTC 2026
+**Job:** Use the correction-finder-ask subagent to find OCR errors in extracted markdown files. For each file, generate a sidecar `<filename>_ERRORS.md` file listing errors found. Each checklist item tracks the review iteration number.
+
+## Workflow
+
+For each PDF in the checklist:
+
+1. Locate the extracted markdown file in `extracted/` or `extracted/<pdf-name>/`
+2. Use the task tool with the "Correction Finder (Ask)" subagent to analyze the markdown
+3. Direct the subagent to:
+   - Read the specified markdown file
+   - Check for existing `<name>_ERRORS.md` sidecar file
+   - Find new errors not already documented in the sidecar
+   - Append new errors to the sidecar file with line numbers and justifications
+4. Increment the review count on the checklist item (e.g., "Review #1", "Review #2", etc.)
+5. Commit changes to git
+
+**Subagent prompt:**
+"You are the Correction Finder subagent. Read the file [path]. Check if an [name]\_ERRORS.md sidecar exists. Find NEW OCR/correction errors not already documented. Append new errors with format: L###: \"wrong\" -> \"right\" with justification. Do NOT edit the source markdown file."
+
+## Checklist
+
+````
+
+**When to copy additional files:**
+
+- **Images (`images/`)**: Only if you need figures for RAG, documentation, or visual reference
+- **Layout PDFs (`*_layout.pdf`)**: Only for debugging extraction quality
+- **JSON files**: Only for analysis, debugging, or building custom tooling
+
+### Step 5: Clean Up Remote Files
+
+```bash
+# SSH to remote
+ssh dzack@ssh-work.dzackgarza.com
+
+# Trash intermediate files (keeps only the .md file)
+cd ~/pdf-outputs/file/auto/
+gio trash images/ *_layout.pdf *_span.pdf *_origin.pdf *_middle.json *_model.json *_content_list.json
+
+# Verify only .md remains
+ls -la
+````
+
+## Checklist
+
+**Use the correction-finder subagent to find errors. Track review iterations on each item:**
+
+- [ ] Review #21/100 `Complex Analysis - Ahlfors.pdf`
+- [ ] Review #1/100 `An Introduction to Lie Groups and Lie Alge - ALEXANDER KIRILLOV, Jr_.pdf`
+- [ ] Review #1/100 `Lectures on Kahler Geometry - ANDREI MOROIANU.pdf`
+- [ ] Review #1 `Proofs from the Book - Aigner, Ziegler.pdf`
+- [ ] Review #1 `A First Course in Wavelets With Fourier An - Albert Boggess.pdf`
+- [ ] Review #1 `Classification of Fiber Bundles, Gauge The - Alexander Wijins.pdf`
+- [ ] Review #1 `The Wild World of 4-Manifolds - Alexandru Scorpan.pdf`
+- [ ] Review #1 `Algebraic Topology - Allen Hatcher.pdf`
+- [ ] Review #1 `Vector Bundles and K Theory - Allen Hatcher.pdf`
+- [ ] Review #1 `A Term of Commutative Algebra - Altman, Kleiman.pdf`
+- [ ] Review #1 `Lectures on Symplectic Geometry - Ana Cannas da Silva.pdf`
+- [ ] Review #1 `Functional Analysis ( (Stein and Shakarchi - Analysis Introduction to Further Topics in.pdf`
+- [ ] Review #1 `Homotopical Topology - Anatoly Fomenko.pdf`
+- [ ] Review #1 `Adeles & Algebraic Groups - Andre Weil.pdf`
+- [ ] Review #1 `Algebraic Geometry - Andreas Gathmann.pdf`
+- [ ] Review #1 `Plane Algebraic Curves - Andreas Gathmann.pdf`
+- [ ] Review #1 `A Concise Handbook of Mathematics, Physics - Andrei D. Polyanin.pdf`
+- [ ] Review #1 `Elementary Differential Geometry - Andrew Pressley.pdf`
+- [ ] Review #1 `Homotopy Groups of Spheres and Low-Dimensi - Andrew Putman.pdf`
+- [ ] Review #1 `Modular Elliptic Cuves and Fermat's Last T - Andrew Wiles.pdf`
+- [ ] Review #1 `Lie Groups, Lie Algebras, and Cohomology - Anthony Knapp.pdf`
+- [ ] Review #1 `Puzzles in geometry that I know and love - Anton Petrunin.pdf`
+- [ ] Review #1 `An Excursion through Elementary Mathematic - Antonio Caminha Muniz Neto.pdf`
+- [ ] Review #1 `An Excusrion through Elementary Mathematic - Antonio Caminha Muniz Neto.pdf`
+- [ ] Review #1 `Introduction to Analytic Number Theory - Apostol.pdf`
+- [ ] Review #1 `Complex Algebraic Surfaces, 2nd ed_ - Arnaud Beauville.pdf`
+- [ ] Review #1 `Geometry of Yang-Mills Fields - Atiyah.pdf`
+- [ ] Review #1 `Morse Theory and Floer Homology - Audin.pdf`
+- [ ] Review #1 `Engineering Mathematics - Babu Ram.pdf`
+- [ ] Review #1 `Algebraic Number Theory (Course Notes) - Baker.pdf`
+- [ ] Review #1 `Foundations of Stable Homotopy Theory - Barnes, Roitzheim.pdf`
+- [ ] Review #1 `Mirror Symmetry and Toric Geometry - Batyrev.pdf`
+- [ ] Review #1 `Pervers Faisceaux - Beilinson, Bernstein, Deligne.pdf`
+- [ ] Review #1 `Introduction to Soergel Bimodules - Ben Elias, Shotaro Makisumi, Ulrich Thiel,.pdf`
+- [ ] Review #1 `A Primer on Mapping Class Groups - Benson Farb, Dan Margalit.pdf`
+- [ ] Review #1 `Problems in Analysis - Bernard Gelbaum.pdf`
+- [ ] Review #1 `p-adic Hodge Theory - Bhatt.pdf`
+- [ ] Review #1 `Complex Abelian Varieties - Birkenhake-Lange.pdf`
+- [ ] Review #1 `A Probability Path - Birkhauser Basel.pdf`
+- [ ] Review #1 `Gelfand Mathematical Seminars 1990-1992 - Birkhauser.pdf`
+- [ ] Review #1 `Probability and Mathematical Statistics - Birnbaum.pdf`
+- [ ] Review #1 `Lectures on rational points on curves - Bjorn Poonen.pdf`
+- [ ] Review #1 `Rational points on varieties - Bjorn Poonen.pdf`
+- [ ] Review #1 `Lie Groups - Borcherds.pdf`
+- [ ] Review #1 `Differential Forms in Algebraic Topology - Bott.pdf`
+- [ ] Review #1 `Lie Groups & Lie Algebras. Chapters 7-9 - Bourbaki N_.pdf`
+- [ ] Review #1 `Panorama of Pure Mathematics - Bourbaki.pdf`
+- [ ] Review #1 `Quantum Theory for Mathematicians - Brian C. Hall.pdf`
+- [ ] Review #1 `The Symmetric Group_ Representations - Bruce E. Sagan.pdf`
+- [ ] Review #1 `On Thom Spectra, Orientability, and Cobord - Budyak.pdf`
+- [ ] Review #1 `Automorphic Forms and Representations - Bump.pdf`
+- [ ] Review #1 `A User's Guide to Algebraic Topology - C. T. Dodson.pdf`
+- [ ] Review #1 `Mathematical Analysis 1 - Canuto, Tabacco.pdf`
+- [ ] Review #1 `K3 Surfaces & Their Moduli - Carel Faber, Gavril Farkas, Gerard van der.pdf`
+- [ ] Review #1 `Hyperbolic Geometry - Caroline Series.pdf`
+- [ ] Review #1 `Finite groups of Lie type conjugacy classe - Carter, Roger W_.pdf`
+- [ ] Review #1 `Algebraic number theory; proceedings of an - Cassel Frolich.pdf`
+- [ ] Review #1 `Principles of Real Analysis - Charalambos D. Aliprantis, Owen Burkinshaw.pdf`
+- [ ] Review #1 `An Introduction to Homological Algebra - Charles A. Weibel.pdf`
+- [ ] Review #1 `Elliptic Cohomology - Charles B. Thomas.pdf`
+- [ ] Review #1 `A Book of Abstract Algebra_ Second Edition - Charles C Pinter.pdf`
+- [ ] Review #1 `Real Mathematical Analysis - Charles Chapman Pugh.pdf`
+- [ ] Review #1 `Grinstead and Snell's Introduction to Prob - Charles M. Grinstead.pdf`
+- [ ] Review #1 `Braid Groups - Christian Kassel, Vladimir Turaev.pdf`
+- [ ] Review #1 `Abstract and Concrete Categories - The Joy - Christoph Schubert.pdf`
+- [ ] Review #1 `Pattern Recognition and Machine Learning - Christopher M. Bishop.pdf`
+- [ ] Review #1 `An Introduction to Intersection Homology - Clare.pdf`
+- [ ] Review #1 `The Topology of Fiber Bundles Notes - Cohen.pdf`
+- [ ] Review #1 `The arithmetic of hyperbolic 3-manifolds - Colin Maclachlan, Alan W. Reid.pdf`
+- [ ] Review #1 `Sphere Packings, Lattices, and Groups - Conway, Sloane.pdf`
+- [ ] Review #1 `Mirror Symmetry - Cox Sheldon.pdf`
+- [ ] Review #1 `Topological Methods in Algebra - Craven.pdf`
+- [ ] Review #1 `Representations and Cohomology_ Volume 1, - D. J. Benson.pdf`
+- [ ] Review #1 `Representations and Cohomology_ Volume 2, - D. J. Benson.pdf`
+- [ ] Review #1 `EM and Langlands - DBZ.pdf`
+- [ ] Review #1 `Toric Varieties - Daivd Cox, John Little, Hal Schenck.pdf`
+- [ ] Review #1 `Knots & Links - Dale Rolfsen.pdf`
+- [ ] Review #1 `Lie Groups - Daniel Bump.pdf`
+- [ ] Review #1 `Geometric Intro to K-Theory - Daniel Dugger.pdf`
+- [ ] Review #1 `QFT for Topologists - Daniel Dugger.pdf`
+- [ ] Review #1 `Bordism Old and New - Daniel Freed.pdf`
+- [ ] Review #1 `Complex Geometry_ An Introduction - Daniel Huybrechts.pdf`
+- [ ] Review #1 `Ideals, Varieties, and Algorithms - David A Cox.pdf`
+- [ ] Review #1 `Ideals, Varieties, and Algorithms - David A Cox.pdf`
+- [ ] Review #1 `Computer Vision_ A Modern Approach_ A Mode - David A. Forsyth.pdf`
+- [ ] Review #1 `Cech and Steenrod Homotopy Theories with A - David Edwards, Harold Hastings.pdf`
+- [ ] Review #1 `Commutative Algebra With a View Toward Alg - David Eisenbud.pdf`
+- [ ] Review #1 `Intersection Theory in Algebraic Geometry - David Eisenbud.pdf`
+- [ ] Review #1 `The Geometry of Schemes - David Eisenbud.pdf`
+- [ ] Review #1 `Abelian Varieties - David Mumford.pdf`
+- [ ] Review #1 `The Red Book of Varieties and Schemes - David Mumford.pdf`
+- [ ] Review #1 `Abstract Algebra - David Steven Dummit.pdf`
+- [ ] Review #1 `Geometric Topology_ Localization, Periodic - Dennis Sullivan.pdf`
+- [ ] Review #1 `Singularities of Hypersurfaces - Dimca, Alexandru.pdf`
+- [ ] Review #1 `An Invitation to Arithmetic Geometry - Dino Lorenzini.pdf`
+- [ ] Review #1 `Classical Algebraic Geometry_ A Modern Vie - Dolgachev.pdf`
+- [ ] Review #1 `Riemannian Holonomy Groups and Calibrated - Dominic D. Joyce.pdf`
+- [ ] Review #1 `Complex Cobordism and Stable Homotopy Grou - Douglas C. Ravenel.pdf`
+- [ ] Review #1 `Riemann Surfaces By Way of Analytic Geomet - Dror Varolin.pdf`
+- [ ] Review #1 `Modern Geometry - Methods and Applications - Duborivin, Fomenko, Novikov.pdf`
+- [ ] Review #1 `J-Holomorphic Curves and Symplectic Topolo - Dusa McDuff, Dietmar Salamon.pdf`
+- [ ] Review #1 `Introduction to Symplectic Topology - Dusa McDuff.pdf`
+- [ ] Review #1 `Probability Theory The Logic of Science - E. T. Jaynes.pdf`
+- [ ] Review #1 `Complex Analysis - Eberhard Freitag, Rolf Busam.pdf`
+- [ ] Review #1 `Group Actions on Manifolds - Eckhard Meinrenken.pdf`
+- [ ] Review #1 `Algebraic Topology - Edwin H. Spanier.pdf`
+- [ ] Review #1 `Analytic Function Theory - Einar Hille.pdf`
+- [ ] Review #1 `3264 and All That - Eisenbud.pdf`
+- [ ] Review #1 `Complex Analysis (Stein and Shakarchi II) - Elias M. Stein, Rami Shakarchi.pdf`
+- [ ] Review #1 `Fourier Analysis ( (Stein and Shakarchi I) - Elias M. Stein, Rami Shakarchi.pdf`
+- [ ] Review #1 `Commutative Algebra - Ellengsrud.pdf`
+- [ ] Review #1 `Galois Theory - Emil Artin.pdf`
+- [ ] Review #1 `Categorical Homotopy Theory - Emily Riehl.pdf`
+- [ ] Review #1 `Category Theory in Context - Emily Riehl.pdf`
+- [ ] Review #1 `Category Theory in Context - Emily Riehl.pdf`
+- [ ] Review #1 `Elements of Infty-Category Theory - Emily Riehl.pdf`
+- [ ] Review #1 `Survey of Categorical Concepts - Emily Riehl.pdf`
+- [ ] Review #1 `Introductory Functional Analysi - Erwin Kreyszig.pdf`
+- [ ] Review #1 `Tensor Categories - Etingof.pdf`
+- [ ] Review #1 `Higher-Dimensional Categories - Eugenia Cheng.pdf`
+- [ ] Review #1 `Conceptual Mathematics A First Introductio - F. William Lawvere.pdf`
+- [ ] Review #1 `Fractal Geometry Mathematical - Falconer Kenneth.pdf`
+- [ ] Review #1 `Fundamental AG_ FGA Explained - Fantechi.pdf`
+- [ ] Review #1 `Handbook of Moduli - Farkas, Morrison.pdf`
+- [ ] Review #1 `Analytic Combinatorics - Flajolet, Sedgewick.pdf`
+- [ ] Review #1 `Visual Geometry and Topology - Fomenko.pdf`
+- [ ] Review #1 `Stein Manifolds and Holomorphic Mappings - Franc Forstneric.pdf`
+- [ ] Review #1 `On the Compactification of Moduli Spaces f - Francesco Scattone.pdf`
+- [ ] Review #1 `Handbook of Categorical Algebra_ Volume 3, - Francis Borceux.pdf`
+- [ ] Review #1 `Foundations of Differentiable Manifolds an - Frank W. Warner.pdf`
+- [ ] Review #1 `A First Course in Modular Forms - Fred Diamond.pdf`
+- [ ] Review #1 `Etale Cohomology and Weil Conjectures - Freitag-Kiehl.pdf`
+- [ ] Review #1 `Algebraic Topology I-VI - Friedl.pdf`
+- [ ] Review #1 `Complex Algebraic Geometry - Gallier Shatz.pdf`
+- [ ] Review #1 `A Survey of Modern Algebra - Garrett Birkhoff.pdf`
+- [ ] Review #1 `Fibrations and Sheaves - Garth Warner.pdf`
+- [ ] Review #1 `Illustrated Guide to Perverse Sheaves - Geordie Williamson.pdf`
+- [ ] Review #1 `An Invitation to General Algebra and Unive - George M. Bergman.pdf`
+- [ ] Review #1 `Elements of Homotopy Theory - George W. Whitehead.pdf`
+- [ ] Review #1 `Real Analysis Modern Techniques and Their - Gerald B. Folland.pdf`
+- [ ] Review #1 `Sheaf Theory - Glen E. Bredon.pdf`
+- [ ] Review #1 `Differential Equations and Linear Algebra - Goode, Annin.pdf`
+- [ ] Review #1 `Goode Solution Manual - Goode, Annin.pdf`
+- [ ] Review #1 `Basic Structures of Function Field Arithme - Goss.pdf`
+- [ ] Review #1 `Topology, Geometry and Gauge Fields_ Found - Gregory L. Naber.pdf`
+- [ ] Review #1 `Introduction to Quantum Mechanics - Griffith.pdf`
+- [ ] Review #1 `Introduction to Algebraic Curves - Griffiths.pdf`
+- [ ] Review #1 `Discrete and Combinatorial Mathematics_ An - Grimaldi Ralph P_.pdf`
+- [ ] Review #1 `Calabi-Yau Manifolds and Their Friends - Gross, Huybrechts, Joyce.pdf`
+- [ ] Review #1 `A Journey Through Representation Theory - Gruson.pdf`
+- [ ] Review #1 `Riemann's Zeta Function - H. M. Edwards.pdf`
+- [ ] Review #1 `An Introduction to Contact Topology - HANSJORG GEIGES.pdf`
+- [ ] Review #1 `Real Analysis (4th Edition) - Halsey Royden, Patrick Fitzpatrick.pdf`
+- [ ] Review #1 `Inequalities - Hardy, Littlewood, Polya.pdf`
+- [ ] Review #1 `An Introduction to Quiver Representations - Harm Derksen,Jerzy Weyman.pdf`
+- [ ] Review #1 `Deformation Theory - Hartshorne.pdf`
+- [ ] Review #1 `Calculus Book - Hass, Weir, Thomas.pdf`
+- [ ] Review #1 `Elliptic Cohomology_ Geometry, Application - Haynes R. Miller.pdf`
+- [ ] Review #1 `Algebraic Function Fields and Codes - Henning Stichtenoth.pdf`
+- [ ] Review #1 `Elements of set theory vol 1-Academic Pres - Herbert B. Enderton.pdf`
+- [ ] Review #1 `Generatingfunctionology - Herbert S. Wilf.pdf`
+- [ ] Review #1 `Geometry of Coxeter Groups - Hiller.pdf`
+- [ ] Review #1 `Model Categories - Hovey.pdf`
+- [ ] Review #1 `Elementary Linear Algebra_ Applications Ve - Howard Anton.pdf`
+- [ ] Review #1 `Vector Calculus, Linear Algebra - Hubbard; Barbara Burke Hub John.pdf`
+- [ ] Review #1 `Coxeter Groups - Humphreys.pdf`
+- [ ] Review #1 `Algebra - Hungerford.pdf`
+- [ ] Review #1 `Fiber Bundles - Husemoller.pdf`
+- [ ] Review #1 `Applications of functional analysis and op - Hutson, Pym, Cloud.pdf`
+- [ ] Review #1 `Lectures on K3 surfaces - Huybrechts, Daniel.pdf`
+- [ ] Review #1 `Finite Group Theory - I Martin Isaacs.pdf`
+- [ ] Review #1 `Algebra - A Graduate Course - I. Martin Isaacs.pdf`
+- [ ] Review #1 `Abstract Algebra - I. N. Herstein.pdf`
+- [ ] Review #1 `Galois Theory, Fourth Edition - Ian Nicholas Stewart.pdf`
+- [ ] Review #1 `The Foundations of Mathematics - Ian Stewart.pdf`
+- [ ] Review #1 `Igusa Theta Functions - Igusa.pdf`
+- [ ] Review #1 `Real Analysis Theory of Measure - J Yeh.pdf`
+- [ ] Review #1 `A Course in Combinatorics - J. H. van Lint.pdf`
+- [ ] Review #1 `The Cauchy-Schwarz Master Class_ An Introd - J. Michael Steele.pdf`
+- [ ] Review #1 `More Concise Algebraic Topology Localizati - J. P. May.pdf`
+- [ ] Review #1 `A Concise Course in Algebraic Topology - J. Peter May.pdf`
+- [ ] Review #1 `Algebraic Groups_ The Theory of Group Sche - J. S. Milne.pdf`
+- [ ] Review #1 `Algebraic Number Theory - J. S. Milne.pdf`
+- [ ] Review #1 `Introduction to Lie Algebras and Represent - J.E. Humphreys.pdf`
+- [ ] Review #1 `Abelian Varieties - J.S. Milne.pdf`
+- [ ] Review #1 `Class Field Theory - J.S. Milne.pdf`
+- [ ] Review #1 `String Theory_ Volume 1, an Introduction t - JOSEPH POLCHINSKI.pdf`
+- [ ] Review #1 `Lecture Notes in Algebraic Topology - James Davis, Paul Kirk.pdf`
+- [ ] Review #1 `Linear Algebraic Groups - James E. Humphreys.pdf`
+- [ ] Review #1 `Representations and Characters of Groups - James G., Liebeck M. W_.pdf`
+- [ ] Review #1 `Representations of Semisimple Lie Algebras - James Humphreys.pdf`
+- [ ] Review #1 `Advanced Calculus A Geometric View - James J. Callahan.pdf`
+- [ ] Review #1 `Harmonic Analysis - James Murphy.pdf`
+- [ ] Review #1 `Analysis on Manifolds - James R. Munkres.pdf`
+- [ ] Review #1 `Topology - James R. Munkres.pdf`
+- [ ] Review #1 `A Primer of Commutative Algebra - James S. Milne.pdf`
+- [ ] Review #1 `Complex Variables and Applications - James Ward Brown.pdf`
+- [ ] Review #1 `Categories and Haskell - Jan-Willem Buurlage.pdf`
+- [ ] Review #1 `Birational Geometry of Algebraic Varieties - Janos Kollar, Shigefumi Mori.pdf`
+- [ ] Review #1 `Famlies of Varieties of General type - Janos Kollar.pdf`
+- [ ] Review #1 `Representations of Algebraic Groups - Jantzen.pdf`
+- [ ] Review #1 `Stacks and Moduli - Jaord Alpers.pdf`
+- [ ] Review #1 `Introduction to Stacks and Moduli - Jarod Alper.pdf`
+- [ ] Review #1 `Introduction to PDEs - Jason Murphy.pdf`
+- [ ] Review #1 `Hilbert Modular Forms With Coefficients in - Jayce Getz.pdf`
+- [ ] Review #1 `A Gentle Introduction to Homology, Cohomol - Jean Gallier.pdf`
+- [ ] Review #1 `Coherent Algebraic Sheaves - Jean Pierre Serre.pdf`
+- [ ] Review #1 `Linear Representations of Finite Groups - Jean Pierre Serre.pdf`
+- [ ] Review #1 `Local Fields - Jean Pierre Serre.pdf`
+- [ ] Review #1 `A Course in Arithmetic - Jean-Pierre Serre.pdf`
+- [ ] Review #1 `Groups_ An Introduction - Jean-Pierre Serre.pdf`
+- [ ] Review #1 `Basic Complex Analysis - Jerrold E. Marsden.pdf`
+- [ ] Review #1 `Probability - Jim Pitman.pdf`
+- [ ] Review #1 `An Invitation to Quantum Cohomology - Joachim Kock, Israel Vainsencher.pdf`
+- [ ] Review #1 `Div Grad Curl - Joao.pdf`
+- [ ] Review #1 `Geometry_ A First Course - Joe Harris.pdf`
+- [ ] Review #1 `Moduli of Curves - Joe Harris.pdf`
+- [ ] Review #1 `Abstract Algebra_ Third Edition - John A. Beachy.pdf`
+- [ ] Review #1 `A Course in Functional Analysis - John B. Conway.pdf`
+- [ ] Review #1 `Function of One Complex Variable I - John B. Conway.pdf`
+- [ ] Review #1 `A First Course in Abstract Algebra Solutio - John B. Fraleigh.pdf`
+- [ ] Review #1 `Theta Functions on Riemann Surfaces - John Fay.pdf`
+- [ ] Review #1 `Infinite Loop Spaces - John Frank Adams.pdf`
+- [ ] Review #1 `Stable Homotopy Theory - John Frank Adams.pdf`
+- [ ] Review #1 `Characteristic Classes - John Milnor, James D. Stasheff.pdf`
+- [ ] Review #1 `Intro to Algebraic K-theory - John Milnor.pdf`
+- [ ] Review #1 `Classical Mechanics - John Robert Taylor.pdf`
+- [ ] Review #1 `Lecture Notes on Algebraic Topology II - John Rognes.pdf`
+- [ ] Review #1 `Cookbook of a Level Statistics_ Descriptiv - John Sensele.pdf`
+- [ ] Review #1 `Mathematics and Its History - John Stillwell.pdf`
+- [ ] Review #1 `Naive Lie Theory - John Stillwell.pdf`
+- [ ] Review #1 `The Four Pillars of Geometry - John Stillwell.pdf`
+- [ ] Review #1 `Collected Papers of John Milnor_ Homotopy, - John W. Milnor.pdf`
+- [ ] Review #1 `Lectures on the h-Cobordism Theorem - John W. Milnor.pdf`
+- [ ] Review #1 `Morse Theory - John W. Milnor.pdf`
+- [ ] Review #1 `Morse Theory - John W. Milnor.pdf`
+- [ ] Review #1 `On the h-Cobordism Theorem - John W. Milnor.pdf`
+- [ ] Review #1 `The Seiberg-Witten Equations & Application - John W. Morgan.pdf`
+- [ ] Review #1 `Morse Theory - John Willard Milnor.pdf`
+- [ ] Review #1 `Singular points of complex hypersurfaces - John Willard Milnor.pdf`
+- [ ] Review #1 `Topology From the Differentiable Viewpoint - John Willard Milnor.pdf`
+- [ ] Review #1 `Trees - John-Pierre Serre.pdf`
+- [ ] Review #1 `Contemporary Abstract Algebra - Joseph Gallian.pdf`
+- [ ] Review #1 `An Introduction to Homological Algebra - Joseph J. Rotman.pdf`
+- [ ] Review #1 `Modern Algebra - Joseph J. Rotman.pdf`
+- [ ] Review #1 `Gamma Exploring Euler's Constant - Julian Havil.pdf`
+- [ ] Review #1 `Mathematical Game Theory - Julio Gonzalez-Diaz, Ignacio Garcia-Jurado.pdf`
+- [ ] Review #1 `Compact Riemann Surfaces_ An Introduction - Jurgen Jost.pdf`
+- [ ] Review #1 `Algebraic Number Theory - Jurgen Neukirch.pdf`
+- [ ] Review #1 `Knotes - Justin Roberts.pdf`
+- [ ] Review #1 `From Stein to Weinstein and Back_ Symplect - Kai Cieliebak, Yakov Eliashberg.pdf`
+- [ ] Review #1 `An Invitation to Algebraic Geometry - Karen Smith.pdf`
+- [ ] Review #1 `String Theory and M-Theory_ A Modern Intro - Katrin Becker.pdf`
+- [ ] Review #1 `Moduli of Elliptic Curves - Katz-Mazur.pdf`
+- [ ] Review #1 `Rigid Local Systems - Katz.pdf`
+- [ ] Review #1 `Introduction to the Minimal Model Program - Kawamata, Matsuki.pdf`
+- [ ] Review #1 `Elementary Analysis_ The Theory of Calculu - Kenneth A. Ross.pdf`
+- [ ] Review #1 `A Classical Introduction to Modern Number - Kenneth Ireland.pdf`
+- [ ] Review #1 `Discrete Mathematics and Its Applications - Kenneth Rosen.pdf`
+- [ ] Review #1 `Putnam Mathematical Competition 1985-2000 - Kiran S. Kedlaya, Bjorn Poonen, Ravi Vakil.pdf`
+- [ ] Review #1 `Intro to Lie Groups and Lie Algebras - Kirillov.pdf`
+- [ ] Review #1 `Vector Bundles and K-Theory Lecture Notes - Klaus Wirthmuller.pdf`
+- [ ] Review #1 `Mathematical Writing - Knuth.pdf`
+- [ ] Review #1 `A course in number theory and cryptography - Koblitz, Neal.pdf`
+- [ ] Review #1 `Families of Varieties of General Type - Kollar.pdf`
+- [ ] Review #1 `Introductory Complex Analysis - Kolmogorov.pdf`
+- [ ] Review #1 `Measures, Lebesgue Integrals, and Hilbert - Kolmogorov.pdf`
+- [ ] Review #1 `Differential Manifolds - Kosinski, Antoni A_.pdf`
+- [ ] Review #1 `Singularities of the Minimal Model Program - Kovacs, Sandor, Kollar, Janos.pdf`
+- [ ] Review #1 `Lectures on Quantum Mechanics for Mathemat - L. D. Faddeev.pdf`
+- [ ] Review #1 `Elliptic Curves and Modular Forms - Landweber.pdf`
+- [ ] Review #1 `Elliptic Curves and Modular Forms in Algeb - Landweber.pdf`
+- [ ] Review #1 `Functions for Engineers Special & Applied - Larry C. Andrews.pdf`
+- [ ] Review #1 `Spin Geometry - Lawson H.B., Michelsohn M.L_.pdf`
+- [ ] Review #1 `Introduction to Smooth Manifolds (2012) - Lee.pdf`
+- [ ] Review #1 `Topological Manifolds - Lee.pdf`
+- [ ] Review #1 `Problem Solving Through Problems - Loren C. Larson.pdf`
+- [ ] Review #1 `Differential Geometry - Connections, Curva - Loring W. Tu.pdf`
+- [ ] Review #1 `Lectures and Surveys on G2 Manifolds - Lotay, Leung, Karigiannis.pdf`
+- [ ] Review #1 `HTT - Lurie.pdf`
+- [ ] Review #1 `Basic Topology - M. A. Armstrong.pdf`
+- [ ] Review #1 `Commutative Algebra - M. F. Atiyah, I. G. MacDonald.pdf`
+- [ ] Review #1 `Problems in Algebraic Number Theory - M. Ram Murty.pdf`
+- [ ] Review #1 `Introduction to K-theory for C-star-algebr - M. Rordam, F. Larsen, N. Laustsen.pdf`
+- [ ] Review #1 `From Calculus to Cohomology - de Rham Coho - Madsen.pdf`
+- [ ] Review #1 `A Wavelet Tour of Signal Processing - Mallat Stephane.pdf`
+- [ ] Review #1 `Differential Forms - Manfredo P. Do Carmo.pdf`
+- [ ] Review #1 `Geometry I - Marcel Berger.pdf`
+- [ ] Review #1 `Geometry II - Marcel Berger.pdf`
+- [ ] Review #1 `Calabi-Yau Manifolds and Related Geometrie - Mark Gross.pdf`
+- [ ] Review #1 `(Category Theory) From a Geometrical Point - Marquis.pdf`
+- [ ] Review #1 `Subgroups of free products - Marshall Hall.pdf`
+- [ ] Review #1 `Stable Mappings & Their Singularities - Martin Golubitsky, Victor Guillemin (auth.pdf`
+- [ ] Review #1 `Number Theory - Martin H. Weissman.pdf`
+- [ ] Review #1 `Mathematical Methods in the Physical Scien - Mary L. Boas.pdf`
+- [ ] Review #1 `Equivariant Homotopy and Homology Theory - May.pdf`
+- [ ] Review #1 `Noncommutative Noetherian Rings - McConnell, Robson.pdf`
+- [ ] Review #1 `Introduction to Numerical Analysis - Mehrdad.pdf`
+- [ ] Review #1 `Clifford Algebras and Lie THeory - Meinrenken.pdf`
+- [ ] Review #1 `Algorithmic and Symbolic Combinatorics, An - Melczer.pdf`
+- [ ] Review #1 `Quantum Computation & Quantum Information - Michael A. Nielsen, Isaac L. Chuang.pdf`
+- [ ] Review #1 `Algebra - Michael Artin.pdf`
+- [ ] Review #1 `K-Theory - Michael Atiyah.pdf`
+- [ ] Review #1 `Introduction to the Theory of Computation - Michael Sipser.pdf`
+- [ ] Review #1 `A Comprehensive Introduction to Differenti - Michael Spivak.pdf`
+- [ ] Review #1 `Calculus on Manifolds A Modern Approach to - Michael Spivak.pdf`
+- [ ] Review #1 `Complex Analysis - Michael Taylor.pdf`
+- [ ] Review #1 `A Walk Through Combinatorics An Introducti - Miklos Bona.pdf`
+- [ ] Review #1 `Undergraduate Algebraic Geometry - Miles Reid.pdf`
+- [ ] Review #1 `Undergraduate Commutative Algebra - Miles Reid.pdf`
+- [ ] Review #1 `Class Field Theory - Milne.pdf`
+- [ ] Review #1 `Symmetric Bilinear Forms - Milnor, Husemoller.pdf`
+- [ ] Review #1 `Smart Words_ Vocabulary for the Erudite - Mim Harrison.pdf`
+- [ ] Review #1 `An Introduction to Kolmogorov Complexity a - Ming Li.pdf`
+- [ ] Review #1 `Algebraic curves and Riemann surfaces - Miranda.pdf`
+- [ ] Review #1 `0-387-21577-8_20.pdf`
+- [ ] Review #1 `0306256.pdf`
+- [ ] Review #1 `1005.2346.pdf`
+- [ ] Review #1 `1103.4674.pdf`
+- [ ] Review #1 `110830_btheses_hulst_fwn_math.pdf`
+- [ ] Review #1 `1112.5706.pdf`
+- [ ] Review #1 `1209.4708.pdf`
+- [ ] Review #1 `1310.4721.pdf`
+- [ ] Review #1 `1405.3035.pdf`
+- [ ] Review #1 `1410.6938.pdf`
+- [ ] Review #1 `1412.6194.pdf`
+- [ ] Review #1 `1506.06200.pdf`
+- [ ] Review #1 `1511.04265.pdf`
+- [ ] Review #1 `1703.03545.pdf`
+- [ ] Review #1 `1703.09855.pdf`
+- [ ] Review #1 `1810.08953.pdf`
+- [ ] Review #1 `1903.09742.pdf`
+- [ ] Review #1 `2021_Topology_I.pdf`
+- [ ] Review #1 `2022-09-20.pdf`
+- [ ] Review #1 `2022EischenNotes.pdf`
+- [ ] Review #1 `2022GanNotes (1).pdf`
+- [ ] Review #1 `2022GanNotes.pdf`
+- [ ] Review #1 `2022YunNotes (1).pdf`
+- [ ] Review #1 `2022YunNotes.pdf`
+- [ ] Review #1 `2022YunOutline.pdf`
+- [ ] Review #1 `2102.13459.pdf`
+- [ ] Review #1 `2109.08788.pdf`
+- [ ] Review #1 `2109.14594.pdf`
+- [ ] Review #1 `2111.04694.pdf`
+- [ ] Review #1 `2112.10456.pdf`
+- [ ] Review #1 `2201.09445.pdf`
+- [ ] Review #1 `2202.02473.pdf`
+- [ ] Review #1 `2203.01690.pdf`
+- [ ] Review #1 `2207.02276.pdf`
+- [ ] Review #1 `2208.10383 (1).pdf`
+- [ ] Review #1 `60688861.pdf`
+- [ ] Review #1 `9702155.pdf`
+- [ ] Review #1 `AN06.pdf`
+- [ ] Review #1 `ANTBook.pdf`
+- [ ] Review #1 `Apr 26 15h45yyyyy.pdf`
+- [ ] Review #1 `CV_DZackGarza.pdf`
+- [ ] Review #1 `CZ_syllabus_2022.pdf`
+- [ ] Review #1 `ComplexAnalysis_Qual_Spring2021.pdf`
+- [ ] Review #1 `Condensed.pdf`
+- [ ] Review #1 `Cursillo2.pdf`
+- [ ] Review #1 `DZG CRAG Weil Conjectures.pdf`
+- [ ] Review #1 `Disc3.pdf`
+- [ ] Review #1 `Final_Mtg_Slides.pdf`
+- [ ] Review #1 `GSS Talk.pdf`
+- [ ] Review #1 `Grawe, Nathan D - Demographics and the demand for higher education-Johns Hopkins University Press (2018) (1).pdf`
+- [ ] Review #1 `HomotopyGroupsOfSpheres.pdf`
+- [ ] Review #1 `Kujawa.pdf`
+- [ ] Review #1 `LPP01-254-940.pdf`
+- [ ] Review #1 `LectureVII-Stacks.pdf`
+- [ ] Review #1 `MonRC.pdf`
+- [ ] Review #1 `NABDofficial.pdf`
+- [ ] Review #1 `Notes Talk 2.pdf`
+- [ ] Review #1 `Proposed Events Schedule (2).pdf`
+- [ ] Review #1 `S0273-0979-2021-01748-4.pdf`
+- [ ] Review #1 `Schedule QFT 2022 School.pdf`
+- [ ] Review #1 `Schedule_Deformations.pdf`
+- [ ] Review #1 `Scissors.pdf`
+- [ ] Review #1 `Spectra Are Your Friends.pdf`
+- [ ] Review #1 `String Theory - Townsend.pdf`
+- [ ] Review #1 `Talk1-1.pdf`
+- [ ] Review #1 `Talk1.pdf`
+- [ ] Review #1 `Tickets-21618903.pdf`
+- [ ] Review #1 `Topology_Qual_Spring2022.pdf`
+- [ ] Review #1 `UGA Hoodie or Crew 2022.pdf`
+- [ ] Review #1 `Winter 2022 Reading Group Talk Final.pdf`
+- [ ] Review #1 `ZFD-CBG-20220718-TRC4Y4JP6BN (1).pdf`
+- [ ] Review #1 `anab-hotype.pdf`
+- [ ] Review #1 `ant-v1-n1-p01-p.pdf`
+- [ ] Review #1 `bezout.pdf`
+- [ ] Review #1 `day1class.pdf`
+- [ ] Review #1 `dissertation.pdf`
+- [ ] Review #1 `einffinal.pdf`
+- [ ] Review #1 `etale (1).pdf`
+- [ ] Review #1 `faberpandharipande.pdf`
+- [ ] Review #1 `getting_to_brasenose_hires.pdf`
+- [ ] Review #1 `homotopy-sheaves.pdf`
+- [ ] Review #1 `i2.pdf`
+- [ ] Review #1 `icm.pdf`
+- [ ] Review #1 `mfikki.pdf`
+- [ ] Review #1 `mixedLSGNT.pdf`
+- [ ] Review #1 `oguz.pdf`
+- [ ] Review #1 `onlineTicket.pdf`
+- [ ] Review #1 `recentdevelopments.pdf`
+- [ ] Review #1 `rnoti-p241.pdf`
+- [ ] Review #1 `rnoti-p663.pdf`
+- [ ] Review #1 `rnoti-p950.pdf`
+- [ ] Review #1 `scholze-berkeley.pdf`
+- [ ] Review #1 `thesis-augmented.pdf`
+- [ ] Review #1 `thhmusigma.pdf`
+- [ ] Review #1 `toric.pdf`
+- [ ] Review #1 `tx080500586p.pdf`
+- [ ] Review #1 `adic notes - Morel, Sophie.pdf`
+- [ ] Review #1 `Representation Theory - Morel.pdf`
+- [ ] Review #1 `Ordinary Differential Equations_ An Elemen - Morris Tenenbaum.pdf`
+- [ ] Review #1 `Differential Topology - Morris W. Hirsch.pdf`
+- [ ] Review #1 `Cohomology Operations and Applications in - Mosher R.E., Tangora M.C_.pdf`
+- [ ] Review #1 `A Course in Hodge Theory - Movasati.pdf`
+- [ ] Review #1 `Basic Algebra II 2nd edition - Nathan Jacobson.pdf`
+- [ ] Review #1 `Smooth Manifolds and Observables - Nestruev, Jet.pdf`
+- [ ] Review #1 `Algebraic Number Theory - Neukirch.pdf`
+- [ ] Review #1 `Lipschitz Singularities - Neumann.pdf`
+- [ ] Review #1 `The prince - Niccolo Machiavelli.pdf`
+- [ ] Review #1 `Lectures on the Topology of 3-Manifolds an - Nikolai Saviliev.pdf`
+- [ ] Review #1 `Graph Theory - Norman Biggs.pdf`
+- [ ] Review #1 `Theoretical Computer Science for the Worki - Noson S. Yanofsky.pdf`
+- [ ] Review #1 `Topological Library Part 3_ Spectral Seque - Novikov, Taimanov.pdf`
+- [ ] Review #1 `Lectures on Riemann Surfaces - Otto Forster, Bruce Gilligan.pdf`
+- [ ] Review #1 `Projective Differential Geometry - Ovsienko.pdf`
+- [ ] Review #1 `MANIFOLDS, TENSORS, AND FORMS - PAUL RENTELN.pdf`
+- [ ] Review #1 `Monopoles and Three-Manifolds - PETER KRONHEIMER.pdf`
+- [ ] Review #1 `Algebra Chapter 0 - Paolo Aluffi.pdf`
+- [ ] Review #1 `Advanced Calculus - Patrick Fitzpatrick.pdf`
+- [ ] Review #1 `Field & Galois Theory - Patrick Morandi.pdf`
+- [ ] Review #1 `Simplicial Homotopy Theory - Paul G. Goerss, John F. Jardine.pdf`
+- [ ] Review #1 `A Conversational Introduction to Algebraic - Paul Pollack.pdf`
+- [ ] Review #1 `Naive Set Theory - Paul R. Halmos.pdf`
+- [ ] Review #1 `Introduction to Homotopy Theory - Paul Selick.pdf`
+- [ ] Review #1 `The Road to Reality - Penrose Roger.pdf`
+- [ ] Review #1 `Algebraic Number Theory - Pete Clark.pdf`
+- [ ] Review #1 `Commutative Algebra - Pete Clark.pdf`
+- [ ] Review #1 `An Introduction to Mathematical Reasoning_ - Peter J. Eccles.pdf`
+- [ ] Review #1 `Algebraic Geometry I - Peter Scholze.pdf`
+- [ ] Review #1 `Rational Homotopy Theory and Differential - Philip Griffiths, John Morgan.pdf`
+- [ ] Review #1 `Principles of Algebraic Geometry - Philip Griffiths, Joseph Harris.pdf`
+- [ ] Review #1 `Eisenstein series and automorphic represen - Philipp Fleig, Henrik P. A. Gustafsson, Ax.pdf`
+- [ ] Review #1 `Analytic Combinatorics - Philippe Flajolet.pdf`
+- [ ] Review #1 `String Theory (Solutions) - Polchanski.pdf`
+- [ ] Review #1 `A Conversationsal Introduction to ALgebrai - Pollack.pdf`
+- [ ] Review #1 `Not Always Buried Deep - Pollack.pdf`
+- [ ] Review #1 `Cracking the GRE Math Subject Test - Princeton Review.pdf`
+- [ ] Review #1 `Homotopical Algebra - Quillen.pdf`
+- [ ] Review #1 `Enumerative Combinatorics, Volume 1_ Secon - RICHARD P. STANLEY.pdf`
+- [ ] Review #1 `Elementary Number Theory - Raji.pdf`
+- [ ] Review #1 `Bundles, Homotopy, and Manifolds - Ralph Cohern.pdf`
+- [ ] Review #1 `Foundations of Algebraic Geometry - Ravi Vakil-pdfjam.pdf`
+- [ ] Review #1 `Foundations of Algebraic Geometry - Ravi Vakil.pdf`
+- [ ] Review #1 `The Rising Sea Foundations of Algebraic Ge - Ravi Vakil.pdf`
+- [ ] Review #1 `Physics for Scientists and Engineers with - Raymond A. Serway.pdf`
+- [ ] Review #1 `Putnam and Beyond - Razvan Gelca.pdf`
+- [ ] Review #1 `Weil Conjectures, Perverse Sheaves, & l'ad - Reinhardt Kiehl.pdf`
+- [ ] Review #1 `Measures, Integrals, and Martingales - Rene Schilling.pdf`
+- [ ] Review #1 `Catalan's Conjecture - Rene Schoof.pdf`
+- [ ] Review #1 `Projective Geometry_ An Introduction - Rey Casse.pdf`
+- [ ] Review #1 `Introduction to Calculus and Analysis Vol. - Richard Courant, Fritz John.pdf`
+- [ ] Review #1 `Essentials of Stochastic Processes - Richard Durrett.pdf`
+- [ ] Review #1 `Multiple View Geometry in Computer Vision - Richard Hartley, Andrew Zisserman.pdf`
+- [ ] Review #1 `Numerical Analysis - Richard L. Burden.pdf`
+- [ ] Review #1 `Algebraic Combinatorics Walks, Trees, Tabl - Richard Stanley.pdf`
+- [ ] Review #1 `Gauge Theory & the Topology of Four-Manifo - Robert Friedman, John Morgan.pdf`
+- [ ] Review #1 `Holomorphic Surfaces Algebraic & Vector Bu - Robert Friedman.pdf`
+- [ ] Review #1 `4-Manifolds and Kirby Calculus - Robert Gompf, Andas Stipsicz.pdf`
+- [ ] Review #1 `Algebraic Topology - Homotopy and Homology - Robert M. Switzer.pdf`
+- [ ] Review #1 `Algebraic Geometry - Robin Hartshorne.pdf`
+- [ ] Review #1 `Encyclopedia of Mathematics and its Applic - Robin Ticciati.pdf`
+- [ ] Review #1 `Complex Analysis - Rodriguez, Kra, Gilman.pdf`
+- [ ] Review #1 `Concrete Mathematics - Ronald L. Graham.pdf`
+- [ ] Review #1 `General Topology - Ryszard Engelking.pdf`
+- [ ] Review #1 `Homological Algebra - S. I. Gelfand.pdf`
+- [ ] Review #1 `Topological Library_ Part 2_ Characteristi - S. P. Novikov, I. A. Taimanov.pdf`
+- [ ] Review #1 `Topological Library_ Part 1 - S. P. Novikov.pdf`
+- [ ] Review #1 `Riemann Surfaces - S.K. Donaldson.pdf`
+- [ ] Review #1 `3D Computer Graphics - Sam Buss.pdf`
+- [ ] Review #1 `Complex Function Theory - Sarason.pdf`
+- [ ] Review #1 `Some applications of modular forms - Sarnak, Peter.pdf`
+- [ ] Review #1 `Algebraic Topology_ An Intuitive Approach - Sato.pdf`
+- [ ] Review #1 `Categories for the Working Mathematician-S - Saunders Mac Lane.pdf`
+- [ ] Review #1 `Homology - Saunders Mac Lane.pdf`
+- [ ] Review #1 `Work of Scholze - Scholze.pdf`
+- [ ] Review #1 `Introduction to 3 Manifolds - Schultens.pdf`
+- [ ] Review #1 `Divisors and Sandpiles - Scott Corry, David Perkinson.pdf`
+- [ ] Review #1 `A Mathematical Introduction to Conformal F - Scottenloher.pdf`
+- [ ] Review #1 `Algebra - Serge Lang.pdf`
+- [ ] Review #1 `Complex Analysis - Serge Lang.pdf`
+- [ ] Review #1 `Introduction to Linear Algebra - Serge Lang.pdf`
+- [ ] Review #1 `Methods of Homological Algebra - Sergei I. Gelfand.pdf`
+- [ ] Review #1 `Deformations of Algebraic Schemes - Sernesi.pdf`
+- [ ] Review #1 `Deformations of Algebraic Schemes - Sernesi.pdf`
+- [ ] Review #1 `Abelian l-Adic Representations and Ellipti - Serre.pdf`
+- [ ] Review #1 `Lie Groups and Lie Algebras - Serre.pdf`
+- [ ] Review #1 `Linear Algebra Done Right - Sheldon Axler.pdf`
+- [ ] Review #1 `Measure, Integration & Real Analysis - Sheldon Axler.pdf`
+- [ ] Review #1 `Algebraic Mirror symmetry and Geometry - Sheldon Katz David A. Cox.pdf`
+- [ ] Review #1 `Enumerative Geometry and String Theory - Sheldon Katz.pdf`
+- [ ] Review #1 `A First Course in Probability - Sheldon Ross.pdf`
+- [ ] Review #1 `An Introduction to Invariants and Moduli ( - Shigeru Mukai.pdf`
+- [ ] Review #1 `Arithmetic & Geometry of K3 Surfaces & Cal - Shigeyuki Kondo (auth.), Radu Laza, Matthi.pdf`
+- [ ] Review #1 `K3 Surfaces - Shigeyuki Kondo.pdf`
+- [ ] Review #1 `Geometry of Differential Forms - Shigeyuki Morita.pdf`
+- [ ] Review #1 `Map of my Life - Shimura.pdf`
+- [ ] Review #1 `DG Modules and HZ Spectra - Shipley.pdf`
+- [ ] Review #1 `p-Adic Lie Groups - Shneider.pdf`
+- [ ] Review #1 `Kac-Moody, their Flag Varieties and Repres - Shrawan Kumar.pdf`
+- [ ] Review #1 `Differential Geometry, Lie Groups, and Sym - Sigurdur Helgason.pdf`
+- [ ] Review #1 `Berkeley Problems in Mathematics - Silva Souza.pdf`
+- [ ] Review #1 `Calculus Made Easy - Silvanus P. Thompson.pdf`
+- [ ] Review #1 `The Arithmetic of Dynamical Systems - Silverman.pdf`
+- [ ] Review #1 `The Arithmetic of Elliptic Curves - Silverman.pdf`
+- [ ] Review #1 `Linear Algebra - Simon Plouffe - Hoffman.pdf`
+- [ ] Review #1 `Representation Theory - Sophie Morel.pdf`
+- [ ] Review #1 `Elementary Mechanics From a Mathematician' - Spivak.pdf`
+- [ ] Review #1 `Linear Algebraic Groups - Springer.pdf`
+- [ ] Review #1 `Cohomology Operations - Steenrod.pdf`
+- [ ] Review #1 `Real Analysis (Stein and Shakarchi III) - Stein.pdf`
+- [ ] Review #1 `Mathematical Foundations of Quantum Mechan - Stephan Fackler.pdf`
+- [ ] Review #1 `Understanding Analysis - Stephen Abbott.pdf`
+- [ ] Review #1 `Differential Equations and Linear Algebra - Stephen W. Goode.pdf`
+- [ ] Review #1 `Category Theory - Steve Awodey.pdf`
+- [ ] Review #1 `Point Set Topology - Steven A. Gaal.pdf`
+- [ ] Review #1 `Linear Algebra With Applications - Steven J. Leon.pdf`
+- [ ] Review #1 `A Mathematician's Survival Guide - Steven Krantz.pdf`
+- [ ] Review #1 `Advanced Linear Algebra - Steven Roman.pdf`
+- [ ] Review #1 `Lectures on Quantum Mechanics - Steven Weinberg.pdf`
+- [ ] Review #1 `Lectures in Modules and Rings - T. Y. Lam.pdf`
+- [ ] Review #1 `Exercises in Classical Ring Theory - T.Y. Lam.pdf`
+- [ ] Review #1 `Convex Bodies & Algebraic Geometry_ An int - Tadao Oda.pdf`
+- [ ] Review #1 `Galois Groups and Fundamental Groups - Tamas Szamuely.pdf`
+- [ ] Review #1 `Complex Analysis - Taylor.pdf`
+- [ ] Review #1 `Problems in Real Analysis_ Advanced Calcul - Teodora-Liliana Radulescu.pdf`
+- [ ] Review #1 `An Introduction to Measure Theory - Terrence Tao.pdf`
+- [ ] Review #1 `Representations of Compact Lie Groups - Theodor Brocker, Tammo Tom Diec.pdf`
+- [ ] Review #1 `Complex Analysis - Theodore W. Gamelin.pdf`
+- [ ] Review #1 `All the Mathematics You Missed_ But Need t - Thomas A. Garrity.pdf`
+- [ ] Review #1 `Introduction to Algorithms - Thomas H. Cormen.pdf`
+- [ ] Review #1 `The Princeton Companion to Math - Timothy Gowers.pdf`
+- [ ] Review #1 `Calculus, Vol. 1_ One-Variable Calculus Wi - Tom M. Apostol.pdf`
+- [ ] Review #1 `Calculus_ Multi-Variable Calculus and Line - Tom M. Apostol.pdf`
+- [ ] Review #1 `Hodge-Tate Theory - Tony Feng.pdf`
+- [ ] Review #1 `Contact Topology Notes - Torres.pdf`
+- [ ] Review #1 `Manifolds, Sheaves & Cohomo - Torsten Wedhorn.pdf`
+- [ ] Review #1 `The Elements of Statistical Learning Data - Trevor Hastie.pdf`
+- [ ] Review #1 `Visual Complex Analysis - Tristan Needham.pdf`
+- [ ] Review #1 `classics revisited_ EGA - Ulrich Gortz.pdf`
+- [ ] Review #1 `Homotopy Type Theory_ Univalent Foundation - Univalent Foundations Program.pdf`
+- [ ] Review #1 `Algebra, Topology, Calculus for CS and ML - Unknown.pdf`
+- [ ] Review #1 `Algebraic Geometry over the Complex Number - Unknown.pdf`
+- [ ] Review #1 `An Introduction to Stable Homotopy Theory - Unknown.pdf`
+- [ ] Review #1 `Arithmetic and Geometry of CY Surfaces - Unknown.pdf`
+- [ ] Review #1 `Cohomology Operations and Applications in - Unknown.pdf`
+- [ ] Review #1 `DAG-I - Unknown.pdf`
+- [ ] Review #1 `Fiber Bundles Basics - Unknown.pdf`
+- [ ] Review #1 `Fields Medallists Lectures - Unknown.pdf`
+- [ ] Review #1 `Frobenius Manifolds, Quantum Cohomology, a - Unknown.pdf`
+- [ ] Review #1 `Fukaya Categories and Picard Lefschetz the - Unknown.pdf`
+- [ ] Review #1 `Galois Theory Lecture Notes - Unknown.pdf`
+- [ ] Review #1 `Homological Algebra - Unknown.pdf`
+- [ ] Review #1 `Introduction to Quantum Cohomology Kontsev - Unknown.pdf`
+- [ ] Review #1 `Model Theory - Unknown.pdf`
+- [ ] Review #1 `Motivic Cohomology - Unknown.pdf`
+- [ ] Review #1 `Neron Model - Unknown.pdf`
+- [ ] Review #1 `Notes on Representation Stability - Unknown.pdf`
+- [ ] Review #1 `Principal Bundles and Classifying Spaces - Unknown.pdf`
+- [ ] Review #1 `Putnam and Beyond - Unknown.pdf`
+- [ ] Review #1 `Sheaves and Cohomology - Unknown.pdf`
+- [ ] Review #1 `Simple Singularities and Simple Algebraic - Unknown.pdf`
+- [ ] Review #1 `The Geometry and Topology of Coxeter Group - Unknown.pdf`
+- [ ] Review #1 `The Matrix Cookbook - Unknown.pdf`
+- [ ] Review #1 `Theory of Rings - Unknown.pdf`
+- [ ] Review #1 `Lie Algebras Lie Groups & Representations - V. S. Varadarajan.pdf`
+- [ ] Review #1 `Supersymmetry for Mathematicians_ An Intro - V. S. Varadarajan.pdf`
+- [ ] Review #1 `Mathematical Methods Of Classical Mechanic - V.I. Arnold.pdf`
+- [ ] Review #1 `Vakil Foundations of Algebraic Geometry - Vakil.pdf`
+- [ ] Review #1 `Del Pezzo and K3 Surfaces - Valery Alexeev.pdf`
+- [ ] Review #1 `Moduli of Weighted Hyperplane Arrangements - Valery Alexeev.pdf`
+- [ ] Review #1 `Picard Lefschetz Theory - Vassilliev.pdf`
+- [ ] Review #1 `Differential Topology - Victor Guillemin, Alan Pollack.pdf`
+- [ ] Review #1 `Differential Topology - Victor Guillemin.pdf`
+- [ ] Review #1 `Hodge Theory and Complex Algebraic Geometr - Voisin, C_.pdf`
+- [ ] Review #1 `HODGE THEORY AND COMPLEX ALGEBRAIC GEOMETR - Voisin, Claire.pdf`
+- [ ] Review #1 `HODGE THEORY AND COMPLEX ALGEBRAIC GEOMETR - Voisin, Claire.pdf`
+- [ ] Review #1 `Partial Differential Equations An Introduc - Walter A. Strauss.pdf`
+- [ ] Review #1 `Functional Analysis - Walter Rudin.pdf`
+- [ ] Review #1 `Principles of Mathematical Analysis - Walter Rudin.pdf`
+- [ ] Review #1 `Real and Complex Analysis - Walter Rudin.pdf`
+- [ ] Review #1 `Solutions Manual to Walter Rudin's _Princi - Walter Rudin.pdf`
+- [ ] Review #1 `Cohomology and Poincare Duality - Weiyi Zhang.pdf`
+- [ ] Review #1 `Functions of Several Variables - Wendell Fleming.pdf`
+- [ ] Review #1 `Connections, Curvature, and Cohomology. Vo - Werner Hildbert Greub.pdf`
+- [ ] Review #1 `Representation Theory_ A First Course - William Fulton, Joe Harris.pdf`
+- [ ] Review #1 `Algebraic Curves An Introduction to Algebr - William Fulton.pdf`
+- [ ] Review #1 `Introduction to toric varieties - William Fulton.pdf`
+- [ ] Review #1 `First Concepts of Topology - William G. Chinn.pdf`
+- [ ] Review #1 `Fundamentals of Number Theory - William Judson LeVeque.pdf`
+- [ ] Review #1 `The Geometry and Topology of 3-Manifolds - William P. Thurston.pdf`
+- [ ] Review #1 `Algebraic Number Theory_ A Computational A - William Stein.pdf`
+- [ ] Review #1 `Multivariable mathematics - Williamson, Richard Edmund;Trotter, Hale F.pdf`
+- [ ] Review #1 `Hochschild Cohomology - Witherspoon.pdf`
+- [ ] Review #1 `Compact Complex Surfaces - Wolf P. Barth, Klaus Hulek, Chris A. M. Pe.pdf`
+- [ ] Review #1 `Course Notes on Intersection Theory - Yichao Tian.pdf`
+- [ ] Review #1 `An Introduction to Harmonic Analysis - Yitzhak Katznelson.pdf`
+- [ ] Review #1 `Riemannian Geometry - do Carmo.pdf`
+- [ ] Review #1 `PROBLEMS AND SOLUTIONS IN MATHEMATICS - lsr.pdf`
+- [ ] Review #1 `Handbook of Homotopy Theory - of Homotopy Theory-Chapman Handbook.pdf`
+- [ ] Review #1 `Milne Etale Cohomology - on Etale Cohomology (1998) Lectures.pdf`

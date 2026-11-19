@@ -94,6 +94,12 @@ REMOTE_WORK_DIR = Path("/kaggle/working")
 REMOTE_OUTPUT_DIR = REMOTE_WORK_DIR / "mineru-output"
 REMOTE_SUMMARY_PATH = REMOTE_WORK_DIR / "mineru-summary.json"
 REMOTE_BUNDLE_PATH = REMOTE_WORK_DIR / "mineru-output.zip"
+# The notebook's MinerU environment: the Python of the Kaggle image, the torch
+# wheels and their index, and the MinerU distribution.
+NOTEBOOK_PYTHON = "3.13"
+TORCH_REQUIREMENTS = ("torch==2.2.0", "torchvision==0.17.0", "torchaudio==2.2.0")
+TORCH_INDEX_URL = "https://download.pytorch.org/whl/cu118"
+MINERU_REQUIREMENT = "mineru[pipeline]"
 
 
 def utc_timestamp() -> str:
@@ -290,8 +296,8 @@ def build_notebook(pdf_name: str, args: argparse.Namespace) -> dict[str, object]
             "subprocess.run(['uv', 'venv', '--seed', str(VENV_DIR)], check=True)",
             "venv_pip = str(VENV_DIR / 'bin' / 'pip')",
             "subprocess.run([venv_pip, 'install', '--upgrade', 'pip'], check=True)",
-            "subprocess.run([venv_pip, 'install', 'torch==2.2.0', 'torchvision==0.17.0', 'torchaudio==2.2.0', '--index-url', 'https://download.pytorch.org/whl/cu118'], check=True)",
-            "subprocess.run([venv_pip, 'install', '-q', 'mineru[pipeline]'], check=True)",
+            f"subprocess.run([venv_pip, 'install', *{list(TORCH_REQUIREMENTS)!r}, '--index-url', {TORCH_INDEX_URL!r}], check=True)",
+            f"subprocess.run([venv_pip, 'install', '-q', {MINERU_REQUIREMENT!r}], check=True)",
             f"WORK_DIR = Path('{REMOTE_WORK_DIR.as_posix()}')",
             f"OUTPUT_DIR = Path('{REMOTE_OUTPUT_DIR.as_posix()}')",
             f"SUMMARY_PATH = Path('{REMOTE_SUMMARY_PATH.as_posix()}')",

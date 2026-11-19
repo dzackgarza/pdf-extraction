@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import threading
@@ -66,7 +67,13 @@ def test_poller_reports_failed_kernel_with_log_tail(
     args.device = "cuda"
     manifest = kaggle.prepare_job("someone", args)
     log_tail = "subprocess.CalledProcessError: Command '['pip', 'install', 'torch==2.2.0']' returned non-zero exit status 1."
-    api = FailedKernelApi(log=f"setup line\n{log_tail}\n")
+    log = json.dumps(
+        [
+            {"stream_name": "stdout", "time": 1.0, "data": "setup line\n"},
+            {"stream_name": "stderr", "time": 14.0, "data": f"{log_tail}\n"},
+        ]
+    )
+    api = FailedKernelApi(log=log)
 
     outcome: list[BaseException] = []
 

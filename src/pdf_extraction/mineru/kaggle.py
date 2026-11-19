@@ -96,10 +96,13 @@ REMOTE_SUMMARY_PATH = REMOTE_WORK_DIR / "mineru-summary.json"
 REMOTE_BUNDLE_PATH = REMOTE_WORK_DIR / "mineru-output.zip"
 # The notebook's MinerU environment: the Python of the Kaggle image, the torch
 # wheels and their index, and the MinerU distribution.
+# The cu126 builds of torch 2.7 still carry sm_60 kernels for the P100.
+# MinerU 3 and later replace the `mineru -p -o -b` CLI that the notebook runs.
 NOTEBOOK_PYTHON = "3.13"
-TORCH_REQUIREMENTS = ("torch==2.2.0", "torchvision==0.17.0", "torchaudio==2.2.0")
-TORCH_INDEX_URL = "https://download.pytorch.org/whl/cu118"
-MINERU_REQUIREMENT = "mineru[pipeline]"
+TORCH_REQUIREMENTS = ("torch==2.7.1", "torchvision==0.22.1")
+TORCH_INDEX_URL = "https://download.pytorch.org/whl/cu126"
+MINERU_REQUIREMENT = "mineru[pipeline]>=2.5,<3"
+KERNEL_LOG_TAIL_LINES = 40
 
 
 def utc_timestamp() -> str:
@@ -293,11 +296,9 @@ def build_notebook(pdf_name: str, args: argparse.Namespace) -> dict[str, object]
             "# Create venv with uv and install PyTorch compatible with P100 (sm_60)",
             "VENV_DIR = Path('/kaggle/working/venv')",
             "subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', 'uv'], check=True)",
-            "subprocess.run(['uv', 'venv', '--seed', str(VENV_DIR)], check=True)",
-            "venv_pip = str(VENV_DIR / 'bin' / 'pip')",
-            "subprocess.run([venv_pip, 'install', '--upgrade', 'pip'], check=True)",
-            f"subprocess.run([venv_pip, 'install', *{list(TORCH_REQUIREMENTS)!r}, '--index-url', {TORCH_INDEX_URL!r}], check=True)",
-            f"subprocess.run([venv_pip, 'install', '-q', {MINERU_REQUIREMENT!r}], check=True)",
+            f"subprocess.run(['uv', 'venv', '--python', {NOTEBOOK_PYTHON!r}, '--seed', str(VENV_DIR)], check=True)",
+            "venv_python = str(VENV_DIR / 'bin' / 'python')",
+            f"subprocess.run(['uv', 'pip', 'install', '--python', venv_python, *{list(TORCH_REQUIREMENTS)!r}, {MINERU_REQUIREMENT!r}, '--extra-index-url', {TORCH_INDEX_URL!r}, '--index-strategy', 'unsafe-best-match'], check=True)",
             f"WORK_DIR = Path('{REMOTE_WORK_DIR.as_posix()}')",
             f"OUTPUT_DIR = Path('{REMOTE_OUTPUT_DIR.as_posix()}')",
             f"SUMMARY_PATH = Path('{REMOTE_SUMMARY_PATH.as_posix()}')",
@@ -788,36 +789,23 @@ def wait_for_dataset_ready(
         time.sleep(poll_seconds)
 
 
-def wait_for_kernel_complete(
-    api: KaggleApi,
-    kernel_ref: str,
-    manifest: dict[str, object],
-    poll_seconds: float,
-    timeout_seconds: int | None,
-) -> tuple[str, str | None]:
-    started = time.monotonic()
-    last_status: str | None = None
-    while True:
-        response = api.kernels_status(kernel_ref)
-        payload = response.to_dict() if hasattr(response, "to_dict") else {}
-        status = str(payload.get("status") or response.status).lower()
-        failure_message = getattr(response, "failure_message", None)
-        manifest["kernel_status"] = status
-        persist_state(manifest, "running")
-        if status != last_status:
-            append_event(
-                events_path(manifest),
-                "kernel_status",
-                kernel_ref=kernel_ref,
-                kernel_status=status,
-                failure_message=failure_message,
-            )
-            last_status = status
-        if status in {"complete", "error"}:
-            return status, failure_message
-        if timeout_seconds is not None and time.monotonic() - started > timeout_seconds:
-            raise SystemExit(f"timed out waiting for kernel {kernel_ref} to complete")
-        time.sleep(poll_seconds)
+def kernel_status_name(response: object) -> str:
+    """Return the kernel status as its bare lowercase name, e.g. ``error``.
+
+    The Kaggle API reports a status as ``error`` or as the enum text
+    ``KernelWorkerStatus.ERROR``.
+    """
+    return str(getattr(response, "status")).rsplit(".", 1)[-1].lower()
+
+
+def kernel_log_tail(log_path: Path) -> str:
+    """Return the last lines that the kernel wrote to stdout and stderr.
+
+    A Kaggle kernel log is a JSON array of ``{"stream_name", "time", "data"}``.
+    """
+    entries = json.loads(log_path.read_text(encoding="utf-8"))
+    text = "".join(entry["data"] for entry in entries)
+    return "\n".join(text.splitlines()[-KERNEL_LOG_TAIL_LINES:])
 
 
 def extract_bundle(bundle_path: Path, target_dir: Path) -> None:
@@ -946,8 +934,7 @@ def monitor_remote_jobs(
 
             all_done = False
             response = api.kernels_status(kernel_ref)
-            payload = response.to_dict() if hasattr(response, "to_dict") else {}
-            status = str(payload.get("status") or response.status).lower()
+            status = kernel_status_name(response)
             failure_message = getattr(response, "failure_message", None)
 
             manifest["kernel_status"] = status
@@ -956,7 +943,7 @@ def monitor_remote_jobs(
             )
             manifest["kernel_failure_message"] = failure_message
 
-            persist_state(manifest, "running")
+            persist_state(manifest, manifest["terminal_status"] or "running")
 
             if status != last_statuses.get(kernel_ref):
                 append_event(
@@ -1012,11 +999,15 @@ def finalize_remote_job(
     summary_path = downloads_dir / REMOTE_SUMMARY_PATH.name
     bundle_path = downloads_dir / REMOTE_BUNDLE_PATH.name
 
+    if terminal_kernel_status == "error":
+        log_path = downloads_dir / f"{kernel_ref.split('/', 1)[1]}.log"
+        raise RuntimeError(
+            f"kernel {kernel_ref} ended in status error"
+            f" ({kernel_failure_message or 'no failure message'});"
+            f" log tail of {log_path}:\n{kernel_log_tail(log_path)}"
+        )
+
     if not summary_path.is_file():
-        if terminal_kernel_status == "error":
-            raise RuntimeError(
-                f"kernel {kernel_ref} failed: {kernel_failure_message or 'unknown error'}"
-            )
         raise RuntimeError(
             f"expected worker summary was not downloaded: {summary_path}"
         )
